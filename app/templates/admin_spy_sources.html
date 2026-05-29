@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>瞭望数据源管理 - AI智能瞭望与智能问数系统</title>
+    <link rel="stylesheet" href="/static/dist/layui-v2.13.6/layui-v2.13.6/layui/css/layui.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0f2f5; }
+        .page { padding: 24px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .page-title { font-size: 22px; font-weight: 600; color: #1f2937; }
+        .btn { padding: 8px 20px; border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #3b82f6; color: white; border: none; }
+        .btn-primary:hover { background: #2563eb; }
+        .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        @media (max-width: 1200px) { .cards-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { .cards-grid { grid-template-columns: 1fr; } }
+        .card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: all 0.2s; }
+        .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .card-title { font-size: 18px; font-weight: 600; color: #1f2937; }
+        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+        .status-active { background: #dcfce7; color: #166534; }
+        .status-inactive { background: #fee2e2; color: #991b1b; }
+        .card-content { color: #6b7280; font-size: 14px; }
+        .label { font-size: 12px; color: #9ca3af; text-transform: uppercase; margin-bottom: 4px; }
+        .value { word-break: break-all; margin-bottom: 12px; }
+        .card-footer { display: flex; gap: 10px; margin-top: 16px; }
+        .card-btn { flex: 1; padding: 8px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .btn-edit { background: #eff6ff; color: #3b82f6; }
+        .btn-edit:hover { background: #dbeafe; }
+        .btn-delete { background: #fef2f2; color: #ef4444; }
+        .btn-delete:hover { background: #fee2e2; }
+        .btn-toggle { background: #f0f9ff; color: #0ea5e9; }
+        .btn-toggle:hover { background: #e0f2fe; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.show { display: flex; }
+        .modal { width: 600px; max-width: 90%; background: white; border-radius: 12px; overflow: hidden; }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 18px; font-weight: 600; }
+        .modal-close { cursor: pointer; font-size: 24px; color: #6b7280; }
+        .modal-body { padding: 24px; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: #374151; }
+        .form-input { width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+        .form-input:focus { outline: none; border-color: #3b82f6; }
+        .form-textarea { min-height: 200px; resize: vertical; }
+        .form-row { display: flex; gap: 20px; }
+        .form-row .form-group { flex: 1; }
+        .modal-footer { padding: 20px 24px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 12px; }
+        .btn-cancel { background: #f3f4f6; color: #374151; border: none; }
+        .btn-submit { background: #3b82f6; color: white; border: none; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <h1 class="page-title">瞭望数据源管理</h1>
+            <button class="btn btn-primary" id="btnAdd">新增数据源</button>
+        </div>
+        
+        <div class="cards-grid" id="cardsGrid"></div>
+    </div>
+    
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">新增数据源</h3>
+                <span class="modal-close" id="modalClose">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="sourceForm">
+                    <input type="hidden" id="sourceId">
+                    <div class="form-group">
+                        <label class="form-label">来源名称</label>
+                        <input type="text" id="name" class="form-input" placeholder="例如：百度新闻">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">采集入口 URL</label>
+                        <input type="text" id="entryUrl" class="form-input" placeholder="https://www.baidu.com/s?wd={keyword}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Request Headers (JSON格式)</label>
+                        <textarea id="requestHeaders" class="form-input form-textarea" placeholder='{"User-Agent": "Mozilla/5.0..."}'></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" id="btnCancel">取消</button>
+                <button class="btn btn-submit" id="btnSubmit">确定</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/dist/layui-v2.13.6/layui-v2.13.6/layui/layui.js"></script>
+    <script>
+        layui.use(['layer'], function() {
+            var layer = layui.layer;
+            
+            let allSources = [];
+            
+            function loadSources() {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', '/api/spy-sources');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            allSources = result.data || [];
+                            renderCards();
+                        }
+                    }
+                };
+                xhr.send();
+            }
+            
+            function renderCards() {
+                var grid = document.getElementById('cardsGrid');
+                if (allSources.length === 0) {
+                    grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: #6b7280;">暂无数据源，请点击右上角添加</div>';
+                    return;
+                }
+                
+                grid.innerHTML = allSources.map(function(source) {
+                    return '<div class="card">' +
+                        '<div class="card-header">' +
+                            '<div class="card-title">' + escapeHtml(source.name) + '</div>' +
+                            '<span class="status-badge ' + (source.is_active ? 'status-active' : 'status-inactive') + '">' +
+                                (source.is_active ? '已启用' : '已禁用') +
+                            '</span>' +
+                        '</div>' +
+                        '<div class="card-content">' +
+                            '<div class="label">采集入口</div>' +
+                            '<div class="value">' + escapeHtml(source.entry_url) + '</div>' +
+                        '</div>' +
+                        '<div class="card-footer">' +
+                            '<button class="card-btn btn-toggle" data-id="' + source.id + '">' +
+                                (source.is_active ? '禁用' : '启用') +
+                            '</button>' +
+                            '<button class="card-btn btn-edit" data-id="' + source.id + '">编辑</button>' +
+                            '<button class="card-btn btn-delete" data-id="' + source.id + '">删除</button>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+            }
+            
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+            
+            document.getElementById('btnAdd').addEventListener('click', function() {
+                document.getElementById('modalTitle').textContent = '新增数据源';
+                document.getElementById('sourceId').value = '';
+                document.getElementById('sourceForm').reset();
+                document.getElementById('modal').classList.add('show');
+            });
+            
+            document.getElementById('modalClose').addEventListener('click', function() {
+                document.getElementById('modal').classList.remove('show');
+            });
+            
+            document.getElementById('btnCancel').addEventListener('click', function() {
+                document.getElementById('modal').classList.remove('show');
+            });
+            
+            document.getElementById('btnSubmit').addEventListener('click', function() {
+                var id = document.getElementById('sourceId').value;
+                var name = document.getElementById('name').value;
+                var entryUrl = document.getElementById('entryUrl').value;
+                var requestHeaders = document.getElementById('requestHeaders').value;
+                
+                if (!name || !entryUrl) {
+                    layer.msg('请填写完整信息', {icon: 2});
+                    return;
+                }
+                
+                var data = { name: name, entry_url: entryUrl, request_headers: requestHeaders };
+                var url = id ? '/api/spy-sources/' + id : '/api/spy-sources';
+                var method = id ? 'PUT' : 'POST';
+                
+                var xhr = new XMLHttpRequest();
+                xhr.open(method, url);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            layer.msg(id ? '更新成功' : '创建成功', {icon: 1});
+                            document.getElementById('modal').classList.remove('show');
+                            loadSources();
+                        } else {
+                            layer.msg(result.message || '操作失败', {icon: 2});
+                        }
+                    }
+                };
+                xhr.send(JSON.stringify(data));
+            });
+            
+            document.getElementById('cardsGrid').addEventListener('click', function(e) {
+                var btn = e.target.closest('button');
+                if (!btn) return;
+                
+                var id = btn.getAttribute('data-id');
+                if (!id) return;
+                
+                if (btn.classList.contains('btn-edit')) {
+                    var source = allSources.find(function(s) { return s.id == id; });
+                    if (source) {
+                        document.getElementById('modalTitle').textContent = '编辑数据源';
+                        document.getElementById('sourceId').value = source.id;
+                        document.getElementById('name').value = source.name;
+                        document.getElementById('entryUrl').value = source.entry_url;
+                        document.getElementById('requestHeaders').value = source.request_headers;
+                        document.getElementById('modal').classList.add('show');
+                    }
+                } else if (btn.classList.contains('btn-delete')) {
+                    layer.confirm('确定删除此数据源？', function(index) {
+                        var xhr = new XMLHttpRequest();
+                        xhr.open('DELETE', '/api/spy-sources/' + id);
+                        xhr.onload = function() {
+                            if (xhr.status === 200) {
+                                var result = JSON.parse(xhr.responseText);
+                                if (result.success) {
+                                    layer.msg('删除成功', {icon: 1});
+                                    loadSources();
+                                }
+                            }
+                        };
+                        xhr.send();
+                        layer.close(index);
+                    });
+                } else if (btn.classList.contains('btn-toggle')) {
+                    var source = allSources.find(function(s) { return s.id == id; });
+                    if (source) {
+                        var xhr = new XMLHttpRequest();
+                        xhr.open('PUT', '/api/spy-sources/' + id);
+                        xhr.setRequestHeader('Content-Type', 'application/json');
+                        xhr.onload = function() {
+                            if (xhr.status === 200) {
+                                var result = JSON.parse(xhr.responseText);
+                                if (result.success) {
+                                    layer.msg('设置成功', {icon: 1});
+                                    loadSources();
+                                }
+                            }
+                        };
+                        xhr.send(JSON.stringify({ is_active: !source.is_active }));
+                    }
+                }
+            });
+            
+            loadSources();
+        });
+    </script>
+</body>
+</html>

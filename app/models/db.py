@@ -127,3 +127,72 @@ def init_db():
 
 		# 防止重复入库：同一来源下 URL 唯一
 		conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_spy_data_source_url ON spy_data(source_id, url)")
+		
+		# --------------------------
+		# 任务六：请求伪造与安全防护
+		# --------------------------
+		# 伪造请求模板表
+		conn.execute("""
+			CREATE TABLE IF NOT EXISTS forgery_templates(
+				id integer primary key autoincrement,
+				name varchar(100) not null,           -- 模板名称
+				description text,                     -- 描述
+				attack_type varchar(20) not null,     -- CSRF / SSRF
+				headers text,                         -- JSON 格式的伪造 Headers
+				params text,                          -- JSON 格式的伪造参数
+				payloads text,                        -- JSON 格式的攻击负载
+				is_active integer default 1,          -- 是否启用
+				create_at datetime default current_timestamp
+			)
+		""")
+		
+		# 攻击日志表
+		conn.execute("""
+			CREATE TABLE IF NOT EXISTS attack_logs(
+				id integer primary key autoincrement,
+				source_id integer,                    -- 关联的 spy_sources.id
+				template_id integer,                  -- 关联的 forgery_templates.id
+				attack_type varchar(20) not null,     -- CSRF / SSRF
+				target_url text not null,             -- 目标 URL
+				request_data text,                    -- 请求数据
+				response_data text,                   -- 响应数据
+				status_code integer,                  -- HTTP 状态码
+				is_blocked integer default 0,         -- 是否已被阻断
+				create_at datetime default current_timestamp
+			)
+		""")
+		
+		# 为 spy_sources 增加安全防护开关
+		try:
+			conn.execute("ALTER TABLE spy_sources ADD COLUMN enable_defense integer default 0")
+		except sqlite3.OperationalError:
+			pass
+		
+		# --------------------------
+		# 任务七：多类型存储配置
+		# --------------------------
+		# 存储配置表
+		conn.execute("""
+			CREATE TABLE IF NOT EXISTS storage_configs(
+				id integer primary key autoincrement,
+				name varchar(100) not null,           -- 配置名称
+				storage_type varchar(20) not null,    -- sqlite / mysql / postgresql / mongodb / redis / milvus / chroma / qdrant
+				connection_string text,               -- 连接字符串
+				config text,                          -- JSON 格式的额外配置
+				is_active integer default 0,          -- 是否激活
+				last_test_at datetime,                -- 最后测试连接时间
+				create_at datetime default current_timestamp
+			)
+		""")
+		
+		# 存储统计表
+		conn.execute("""
+			CREATE TABLE IF NOT EXISTS storage_stats(
+				id integer primary key autoincrement,
+				config_id integer not null,           -- 关联的 storage_configs.id
+				record_count integer default 0,       -- 记录数
+				last_write_at datetime,               -- 最后写入时间
+				create_at datetime default current_timestamp,
+				update_at datetime default current_timestamp
+			)
+		""")

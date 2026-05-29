@@ -1,0 +1,136 @@
+任务一：
+完成后端-管理侧功能模块的开发
+- 后台登录页：采用响应式、沉浸式、自适应设计模式，界面风格以企业化管理软件风格为主，简约专业（后台登录页为管理员admin专员：默认登录用户名为：admin/admin888）
+- 后台主页：预留页面，后期开发完所有模块后再实现，本次任务不动代码。
+- 用户管理：实现用户新增/删除/批量删除/修改/分页（20条）等功能。
+
+完成后台管理框架的前端界面开发
+- 通过layui开发后台经典管理界面，左侧为菜单/右侧为工作区。
+- 其他组件根据任务需求自行完善补充。
+
+任务二：
+继续后端-管理侧功能模块的开发
+- 功能管理：将菜单侧功能化，实现动态管理所有功能模块
+- 权限管理：功能与角色的映射关系模块，允许新增/修改/删除权限，采用二级联动的方式实现。
+- 角色管理：默认超级管理员角色（不能修改和删除），允许新增角色，采用二级联动的方式实现。
+开发限制：
+- 遵循前置任务开发成果及要求完成功能模块的实现，保证开发的一致性。
+
+任务三：
+继续后端-管理侧功能模块的开发
+- 用户管理优化：需要增加角色设置，其中admin用户为默认系统用户，角色为超级管理员，该用户不能修改和删除，只能改密码。
+- 用户管理列表：增加列显示角色信息
+开发限制：
+- 遵循前置任务开发成果及要求完成功能模块的实现，保证开发的一致性。
+
+任务四：
+继续后端-管理侧功能模块的开发
+- 模型引擎：
+-- 实现以橱窗列表的页面风格，
+-- 实现动态新增/修改/删除模型服务，
+-- 支持可视化配置满足openai-api范式的模型接入及接口调用服务，
+-- 支持模型token统计（可视化），支持分页一行3列，6条数据为一列，由于设计到AI大模型，风格可以炫酷、高级感强，
+-- 支持对新增的模型进行对话测试功能，
+-- 支持设置模型为系统模式（如果为默认，则全局优先调用该模型）
+-- 模型响应支持SSE（流式响应）
+以下为模型服务代码示例：
+```
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="YOUR_API_KEY",
+    base_url="https://aigc-api.aitoolcore.com/api/v1"
+)
+
+response = client.chat.completions.create(
+    model="deepseek-v3",
+    messages=[{"role": "user", "content": "你好"}]
+)
+print(response.choices[0].message.content)
+```
+以下为APIkey:
+apikey=sk-aigc-d6a0ab7b85e6dcb24bd8bbf43dac1bb22295beab
+
+任务五:
+继续后端-管理侧功能模块的开发
+- 瞭望管理:这是一个通过大模型+AI实现的智能数据采集模块，支持新增瞭望数据源管理和采集功能，以下为具体功能需求或要求：
+-- 瞭望数据源管理:该功能是一个动态可视化规则配置功能，支持新增/删除/修改采集源的规则，我这里给你提供一个采集源，你通过分析实现动态管理，如下：
+```
+百度新闻采集源：
+1、采集入口URL：
+https://www.baidu.com/s?rtt=1&bsst=1&cl=2&tn=news&rsv_dl=ns_pc&word={关键字}
+https://www.baidu.com/s?rtt=1&bsst=1&cl=2&tn=news&rsv_dl=ns_pc&word={关键字}&pn={分页步进，默认0=第一页，10=第二页，20=第三页……}
+2、采集requestheader:
+GET /s?rtt=1&bsst=1&cl=2&tn=news&rsv_dl=ns_pc&word=%E5%9B%9B%E5%B7%9D%E5%86%9C%E4%B8%9A%E5%A4%A7%E5%AD%A6 HTTP/1.1
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: zh-CN,zh;q=0.9
+Cache-Control: no-cache
+Connection: keep-alive
+Cookie: BIDUPSID=5CFCC8D701BF7571598CE9F66EE8E6B5; PSTM=1775407070; BD_UPN=1a314753; BAIDUID=5CFCC8D701BF75717E6B8B51D00D380F:SL=0:NR=10:FG=1; BDUSS=dHWmQ2Tmo4Z3ptWmxqbEpKa2VSelZ6WWxFMFRHcS1zYjRRWTFpYUF4en5HaTFxRVFBQUFBJCQAAAAAAAAAAAEAAACr7QECeWFuZ2FodWkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP-NBWr~jQVqdz; BDUSS_BFESS=dHWmQ2Tmo4Z3ptWmxqbEpKa2VSelZ6WWxFMFRHcS1zYjRRWTFpYUF4en5HaTFxRVFBQUFBJCQAAAAAAAAAAAEAAACr7QECeWFuZ2FodWkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP-NBWr~jQVqdz; MCITY=-%3A; H_WISE_SIDS_BFESS=63143_67861_68166_69006_69372_69446_69430_69455_69593_69769_69797_69780_69843_69912_69948_69961_69998_70012_70050_70086_70117_70152_70126_70156_70228_70261_70184_70244_70201_70271_68739_70322_69921_70356_70142_70420_70422; H_PS_PSSID=63143_67861_68166_69006_69372_69593_69769_69797_69780_69843_69912_69948_69961_69998_70012_70050_70086_70117_70152_70126_70156_70228_70261_70184_70244_70201_70271_68739_70322_69921_70356_70142_70420_70422_70465_70475_70471_70478; BA_HECTOR=818ka48lal8125002g052l8021a1011l12lpf29; BAIDUID_BFESS=5CFCC8D701BF75717E6B8B51D00D380F:SL=0:NR=10:FG=1; ZFY=jCPX3LScArdnDio:A4EZsFVTRAkjhjvCD:BlOoX8ey:A2w:C; BDRCVFR[feWj1Vr5u3D]=I67x6TjHwwYf0; delPer=0; BD_CK_SAM=1; PSINO=6; BDRCVFR[S_ukKV6dOkf]=mk3SLVN4HKm; PAD_BROWSER=1; BDORZ=FFFB88E999055A3F8A630C64834BD6D0; baikeVisitId=d700f4e4-26f6-4a31-a60e-d11476f55f7f; COOKIE_SESSION=1609_1_8_8_5_18_1_1_6_6_3_2_17027_0_0_0_1779521241_1779441953_1779522716%7C9%23690429_27_1779441946%7C9; ab_sr=1.0.1_ODU4YjBkODI0MGVjOGVlOTk5MjExMjFhZWU1ZTMzOGZhNDg4MDIzYTcwYzAwODU5ZGZhNDk1ZDk1ZDZkZjVlMjNiMDYwYTNjNDIyMGU3N2M2OWU3OTEyZWNhMzcyYTRkMzE0Njk0MjUyYmEyNDYwNzQ0OTgwOTZkMDliYTU2YzAzYTcyOTk4YjU4MjZlNWFkNWIxNzIxY2UxMTI3MDk4N2JjYTJlNjhiNzY0ZDAzNGQ1ZjA5M2U2OGRkYTU4YjUw; sug=3; sugstore=0; ORIGIN=0; SMARTINPUT=1; bdime=0; pcMainBoxRec=1; H_WISE_SIDS=63143_67861_68166_69006_69372_69593_69769_69797_69780_69843_69912_69948_69961_69998_70012_70050_70086_70117_70152_70126_70156_70228_70261_70184_70244_70201_70271_68739_70322_69921_70356_70142_70420_70422_70465_70475_70471_70478; BDSVRTM=0
+Host: www.baidu.com
+Pragma: no-cache
+Referer: https://news.baidu.com/
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-site
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 QQBrowser/21.1.8743.400
+sec-ch-ua: "Not)A;Brand";v="8", "Chromium";v="138"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "Windows"
+```
+根据以上采集源，你需要开发一套可动态接收参数的功能模块，以提供后续批量采集功能时调用。
+-- 瞭望采集：开发一个类似搜索引擎的界面，输入框下方提供采集源的动态选择功能（开关样式），该界面要求独立设计风格，不与layui风格同步，炫酷，好看，用户交互体验简单，另外在采集源的选择面板下，提供参数配置：一次有效采集数量和页数（与URL中的参数同步）
+-- 瞭望采集到的数据，保存到sqlite数据库表中
+- 数据仓库：以列表显示通过瞭望采集到的数据，一页20条分页，功能：
+-- 删除/批量删除
+-- AI深度采集（后续单独任务完成）
+
+任务六：继续后端-管理侧功能模块的开发
+瞭望管理增强：实现请求伪造技术应用模块
+-- 支持对瞭望源进行CSRF（跨站请求伪造）和SSRF（服务端请求伪造）漏洞检测与模拟攻击测试
+-- 提供动态规则配置：可新增/修改/删除伪造请求的模板（如伪造Referer、Origin、Cookie等参数）
+-- 实现安全防护策略配置：自动阻断可疑的伪造请求，并记录攻击日志到数据库
+-- 提供可视化测试面板：输入目标URL，选择攻击类型（CSRF/SSRF），一键发送伪造请求并展示响应结果
+-- 与现有瞭望源管理联动：可为每个瞭望源独立开启/关闭请求伪造防御开关
+
+开发限制：
+-- 遵循前置任务（任务五）的瞭望管理开发成果，保证API接口和数据表结构的一致性
+-- 使用相同的后端框架（如FastAPI/Flask）和SQLite数据库扩展表
+
+任务七：继续后端-管理侧功能模块的开发
+数据仓库扩展：实现多类型存储配置与管理
+-- 非关系型数据库存储：支持MongoDB（或Redis）的配置接入，提供集合/文档的可视化浏览与简单查询
+-- 关系型数据库存储：在原有SQLite基础上，支持动态切换至MySQL/PostgreSQL，并提供表结构迁移工具
+-- 向量库存储：集成Milvus/Chroma/Qdrant，支持向量数据（如AI文本嵌入）的增删改查，并提供相似度检索测试界面
+-- 提供统一的数据仓库管理面板：以卡片形式展示三种存储状态（连接、数据量、最后写入时间），支持一键备份/恢复
+-- 与瞭望采集数据联动：允许用户选择将采集结果同时存入一种或多种存储类型（例如：原始JSON存入MongoDB，结构化字段存入关系表，向量化后存入向量库）
+-- 存储配置采用可视化表单，支持连接字符串、认证参数、集合/表名称的动态添加和测试连接
+
+开发限制：
+-- 遵循前置任务（任务五）中数据仓库的列表显示规范，不破坏现有分页（20条/页）及删除/批量删除功能
+-- 保证新增存储模块的API设计风格与已有接口（如/user、/role）保持一致，使用相同的权限校验中间件
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

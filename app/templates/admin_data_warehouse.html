@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据仓库 - AI智能瞭望与智能问数系统</title>
+    <link rel="stylesheet" href="/static/dist/layui-v2.13.6/layui-v2.13.6/layui/css/layui.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #f3f4f6;
+        }
+        .page { padding: 24px; }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .page-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #111827;
+        }
+        .btn-group { display: flex; gap: 12px; }
+        .btn {
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .btn-secondary {
+            background: white;
+            border: 1px solid #d1d5db;
+            color: #374151;
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        .btn-secondary:hover {
+            background: #f3f4f6;
+        }
+        .table-wrapper {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 14px;
+            color: #4b5563;
+        }
+        .col-checkbox { width: 40px; }
+        .col-source { width: 120px; }
+        .col-keyword { width: 140px; }
+        .col-actions { width: 100px; }
+        tr:hover td {
+            background: #f9fafb;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #dbeafe;
+            color: #1d4ed8;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .title-cell {
+            max-width: 400px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .pagination-wrapper {
+            padding: 20px 16px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            background: #fef2f2;
+            color: #ef4444;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .action-btn:hover {
+            background: #fee2e2;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+        .check-all-cell {
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <h1 class="page-title">数据仓库</h1>
+            <div class="btn-group">
+                <button class="btn btn-secondary" id="btnBatchDelete">批量删除</button>
+            </div>
+        </div>
+        
+        <div class="table-wrapper">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th class="col-checkbox"><input type="checkbox" id="checkAll"></th>
+                        <th class="col-source">来源</th>
+                        <th class="col-keyword">关键词</th>
+                        <th>标题</th>
+                        <th>URL</th>
+                        <th>创建时间</th>
+                        <th class="col-actions">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+            <div class="pagination-wrapper" id="pagination"></div>
+        </div>
+    </div>
+    
+    <script src="/static/dist/layui-v2.13.6/layui-v2.13.6/layui/layui.js"></script>
+    <script>
+        layui.use(['layer', 'laypage'], function() {
+            var layer = layui.layer;
+            var laypage = layui.laypage;
+            
+            let currentPage = 1;
+            let pageSize = 20;
+            let allData = [];
+            let totalCount = 0;
+            let selectedIds = [];
+            
+            function loadData(page) {
+                currentPage = page || 1;
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', '/api/spy-data?page=' + currentPage + '&page_size=' + pageSize);
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            allData = result.data || [];
+                            totalCount = result.total || 0;
+                            renderTable();
+                            renderPagination();
+                        }
+                    }
+                };
+                xhr.send();
+            }
+            
+            function renderTable() {
+                var tbody = document.getElementById('tableBody');
+                if (allData.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">暂无数据，请前往瞭望采集数据</div></td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = allData.map(function(item) {
+                    return '<tr data-id="' + item.id + '">' +
+                        '<td><input type="checkbox" class="item-check" data-id="' + item.id + '"></td>' +
+                        '<td><span class="badge">' + escapeHtml(item.source_name || '-') + '</span></td>' +
+                        '<td>' + escapeHtml(item.keyword) + '</td>' +
+                        '<td><div class="title-cell">' + escapeHtml(item.title) + '</div></td>' +
+                        '<td><a href="' + escapeHtml(item.url) + '" target="_blank">' + escapeHtml(item.url).substring(0, 50) + '...</a></td>' +
+                        '<td>' + escapeHtml(item.create_at) + '</td>' +
+                        '<td><button class="action-btn btn-delete" data-id="' + item.id + '">删除</button></td>' +
+                    '</tr>';
+                }).join('');
+            }
+            
+            function renderPagination() {
+                if (totalCount <= pageSize) {
+                    document.getElementById('pagination').innerHTML = '';
+                    return;
+                }
+                
+                laypage.render({
+                    elem: 'pagination',
+                    count: totalCount,
+                    limit: pageSize,
+                    curr: currentPage,
+                    jump: function(obj, first) {
+                        if (!first) {
+                            loadData(obj.curr);
+                        }
+                    }
+                });
+            }
+            
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+            
+            document.getElementById('checkAll').addEventListener('change', function() {
+                var checkboxes = document.querySelectorAll('.item-check');
+                checkboxes.forEach(function(cb) {
+                    cb.checked = this.checked;
+                }.bind(this));
+                updateSelectedIds();
+            });
+            
+            document.getElementById('tableBody').addEventListener('change', function(e) {
+                if (e.target.classList.contains('item-check')) {
+                    updateSelectedIds();
+                }
+            });
+            
+            function updateSelectedIds() {
+                selectedIds = [];
+                document.querySelectorAll('.item-check:checked').forEach(function(cb) {
+                    selectedIds.push(parseInt(cb.getAttribute('data-id')));
+                });
+            }
+            
+            document.getElementById('btnBatchDelete').addEventListener('click', function() {
+                if (selectedIds.length === 0) {
+                    layer.msg('请先选择要删除的数据', {icon: 0});
+                    return;
+                }
+                layer.confirm('确定删除选中的 ' + selectedIds.length + ' 条数据？', function(index) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/api/spy-data/batch-delete');
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            var result = JSON.parse(xhr.responseText);
+                            if (result.success) {
+                                layer.msg('删除成功', {icon: 1});
+                                loadData(currentPage);
+                            }
+                        }
+                    };
+                    xhr.send(JSON.stringify({ids: selectedIds));
+                    layer.close(index);
+                });
+            });
+            
+            document.getElementById('tableBody').addEventListener('click', function(e) {
+                if (e.target.classList.contains('btn-delete')) {
+                    var id = parseInt(e.target.getAttribute('data-id'));
+                    layer.confirm('确定删除此条数据？', function(index) {
+                        var xhr = new XMLHttpRequest();
+                        xhr.open('DELETE', '/api/spy-data/' + id);
+                        xhr.onload = function() {
+                            if (xhr.status === 200) {
+                                var result = JSON.parse(xhr.responseText);
+                                if (result.success) {
+                                    layer.msg('删除成功', {icon: 1});
+                                    loadData(currentPage);
+                                }
+                            }
+                        };
+                        xhr.send();
+                        layer.close(index);
+                    });
+                }
+            });
+            
+            loadData(1);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>请求伪造与安全防护</title>
+    <link rel="stylesheet" href="/static/dist/layui-v2.13.6/layui-v2.13.6/layui/css/layui.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #e2e8f0;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 24px;
+        }
+        .title { 
+            font-size: 28px; 
+            font-weight: 700; 
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { 
+            background: rgba(15, 23, 42, 0.8); 
+            border: 1px solid rgba(148, 163, 184, 0.2); 
+            border-radius: 16px; 
+            padding: 24px;
+        }
+        .card-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #e2e8f0; }
+        .form-group { margin-bottom: 16px; }
+        .form-label { 
+            display: block; 
+            font-size: 14px; 
+            color: #94a3b8; 
+            margin-bottom: 8px;
+        }
+        .form-input, .form-select, .form-textarea { 
+            width: 100%; 
+            padding: 12px 14px; 
+            background: rgba(30, 27, 75, 0.6); 
+            border: 1px solid rgba(148, 163, 184, 0.2); 
+            border-radius: 8px; 
+            color: #e2e8f0;
+            font-size: 14px;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus { 
+            outline: none; 
+            border-color: #3b82f6;
+        }
+        .btn { 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 14px; 
+            cursor: pointer; 
+            transition: all 0.2s;
+        }
+        .btn-primary { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); }
+        .btn-secondary { background: rgba(71, 85, 105, 0.6); color: #e2e8f0; }
+        .template-list { display: flex; flex-direction: column; gap: 12px; }
+        .template-item { 
+            background: rgba(30, 27, 75, 0.6); 
+            padding: 16px; 
+            border-radius: 12px; 
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        .template-item.active { border-color: #3b82f6; }
+        .template-name { font-weight: 600; margin-bottom: 4px; }
+        .template-type { font-size: 12px; color: #94a3b8; }
+        .template-actions { display: flex; gap: 8px; margin-top: 12px; }
+        .template-btn { padding: 6px 12px; font-size: 12px; border: none; border-radius: 6px; cursor: pointer; }
+        .result-box { 
+            background: rgba(15, 23, 42, 0.8); 
+            padding: 16px; 
+            border-radius: 8px; 
+            font-family: monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-list { display: flex; flex-direction: column; gap: 12px; }
+        .log-item { 
+            background: rgba(30, 27, 75, 0.6); 
+            padding: 12px; 
+            border-radius: 8px; 
+            font-size: 13px;
+        }
+        .badge { 
+            display: inline-block; 
+            padding: 2px 8px; 
+            border-radius: 4px; 
+            font-size: 11px; 
+            margin-right: 8px;
+        }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .full-width { grid-column: 1/-1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">⚔️ 请求伪造与安全防护</h1>
+        </div>
+        
+        <div class="grid">
+            <!-- 伪造模板管理 -->
+            <div class="card">
+                <div class="card-title">
+                    伪造模板管理
+                    <button class="btn btn-primary" style="float:right;" onclick="showAddTemplate()">+ 新建模板</button>
+                </div>
+                <div class="template-list" id="templateList"></div>
+            </div>
+            
+            <!-- 测试面板 -->
+            <div class="card">
+                <div class="card-title">测试面板</div>
+                <div class="form-group">
+                    <label class="form-label">攻击类型</label>
+                    <select class="form-select" id="attackType">
+                        <option value="CSRF">CSRF - 跨站请求伪造</option>
+                        <option value="SSRF">SSRF - 服务端请求伪造</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">目标 URL</label>
+                    <input type="text" class="form-input" id="targetUrl" placeholder="http://example.com/api">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">关联数据源（用于防护测试）</label>
+                    <select class="form-select" id="sourceSelect">
+                        <option value="">不关联</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">自定义 Headers (JSON)</label>
+                    <textarea class="form-textarea" id="customHeaders" rows="3" placeholder='{"X-Forwarded-For": "127.0.0.1"}'></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Payload (JSON)</label>
+                    <textarea class="form-textarea" id="customPayload" rows="3" placeholder='{"test": "data"}'></textarea>
+                </div>
+                <button class="btn btn-primary" id="testBtn" onclick="runAttackTest()">执行测试</button>
+                <div class="form-group" style="margin-top:16px;">
+                    <label class="form-label">响应结果</label>
+                    <div class="result-box" id="responseResult">等待执行...</div>
+                </div>
+            </div>
+            
+            <!-- 攻击日志 -->
+            <div class="card full-width">
+                <div class="card-title">攻击日志</div>
+                <div class="log-list" id="logList"></div>
+                <div class="pagination" id="logPagination" style="margin-top:16px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 模板编辑弹窗 -->
+    <div class="modal-overlay" id="templateModal">
+        <div class="modal" style="width:600px;">
+            <div class="modal-header">
+                <span class="modal-title" id="modalTitle">新建模板</span>
+                <span class="modal-close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">模板名称</label>
+                    <input type="text" class="form-input" id="templateName" placeholder="测试模板">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">攻击类型</label>
+                    <select class="form-select" id="templateType">
+                        <option value="CSRF">CSRF</option>
+                        <option value="SSRF">SSRF</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Headers (JSON)</label>
+                    <textarea class="form-textarea" id="templateHeaders" rows="3" placeholder='{"Referer": "http://legit-site.com"}'></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Payloads (JSON)</label>
+                    <textarea class="form-textarea" id="templatePayloads" rows="3" placeholder='{"action": "delete"}'></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveTemplate()">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/dist/layui-v2.13.6/layui-v2.13.6/layui/layui.js"></script>
+    <script>
+        layui.use(['layer', 'laypage'], function() {
+            let layer = layui.layer;
+            let laypage = layui.laypage;
+            
+            let allTemplates = [];
+            let allSources = [];
+            let selectedTemplateId = null;
+            let currentLogPage = 1;
+            
+            // 初始化
+            loadTemplates();
+            loadSources();
+            loadLogs();
+            
+            function loadTemplates() {
+                let xhr = new XMLHttpRequest();
+                xhr.open('GET', '/api/forgery-templates');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        let result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            allTemplates = result.data || [];
+                            renderTemplates();
+                        }
+                    }
+                };
+                xhr.send();
+            }
+            
+            function loadSources() {
+                let xhr = new XMLHttpRequest();
+                xhr.open('GET', '/api/spy-sources');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        let result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            allSources = result.data || [];
+                            renderSourceSelect();
+                        }
+                    }
+                };
+                xhr.send();
+            }
+            
+            function loadLogs(page) {
+                currentLogPage = page || 1;
+                let xhr = new XMLHttpRequest();
+                xhr.open('GET', '/api/attack-logs?page=' + currentLogPage);
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        let result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            renderLogs(result.data);
+                            if (result.total > 20) {
+                                laypage.render({
+                                    elem: 'logPagination',
+                                    count: result.total,
+                                    limit: 20,
+                                    curr: currentLogPage,
+                                    jump: function(obj, first) {
+                                        if (!first) {
+                                            loadLogs(obj.curr);
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }
+                };
+                xhr.send();
+            }
+            
+            function renderTemplates() {
+                let container = document.getElementById('templateList');
+                if (allTemplates.length === 0) {
+                    container.innerHTML = '<div style="color:#94a3b8;">暂无模板</div>';
+                    return;
+                }
+                container.innerHTML = allTemplates.map(function(t) {
+                    return '<div class="template-item ' + (selectedTemplateId === t.id ? 'active' : '') + '" onclick="selectTemplate(' + t.id + ')">' +
+                        '<div class="template-name">' + escapeHtml(t.name) + '</div>' +
+                        '<div class="template-type">' + t.attack_type + '</div>' +
+                        '<div class="template-actions">' +
+                        '<button class="template-btn btn-secondary" onclick="event.stopPropagation(); editTemplate(' + t.id + ')">编辑</button>' +
+                        '<button class="template-btn btn-danger" onclick="event.stopPropagation(); deleteTemplate(' + t.id + ')">删除</button>' +
+                        '</div>' +
+                        '</div>';
+                }).join('');
+            }
+            
+            function renderSourceSelect() {
+                let select = document.getElementById('sourceSelect');
+                select.innerHTML = '<option value="">不关联</option>';
+                allSources.forEach(function(s) {
+                    select.innerHTML += '<option value="' + s.id + '">' + escapeHtml(s.name) + '</option>';
+                });
+            }
+            
+            function renderLogs(logs) {
+                let container = document.getElementById('logList');
+                if (logs.length === 0) {
+                    container.innerHTML = '<div style="color:#94a3b8;">暂无日志</div>';
+                    return;
+                }
+                container.innerHTML = logs.map(function(l) {
+                    let badge = l.is_blocked ? 
+                        '<span class="badge badge-success">已拦截</span>' : 
+                        '<span class="badge badge-danger">已通过</span>';
+                    return '<div class="log-item">' +
+                        '<div>' + badge + ' <strong>' + l.attack_type + '</strong></div>' +
+                        '<div style="margin-top:4px;color:#94a3b8;font-size:12px;">' + escapeHtml(l.target_url) + '</div>' +
+                        '<div style="margin-top:4px;font-size:12px;">' + l.create_at + '</div>' +
+                        '</div>';
+                }).join('');
+            }
+            
+            window.selectTemplate = function(id) {
+                selectedTemplateId = selectedTemplateId === id ? null : id;
+                renderTemplates();
+            };
+            
+            window.showAddTemplate = function() {
+                selectedTemplateId = null;
+                document.getElementById('modalTitle').textContent = '新建模板';
+                document.getElementById('templateName').value = '';
+                document.getElementById('templateType').value = 'CSRF';
+                document.getElementById('templateHeaders').value = '';
+                document.getElementById('templatePayloads').value = '';
+                document.getElementById('templateModal').classList.add('show');
+            };
+            
+            window.editTemplate = function(id) {
+                let template = allTemplates.find(function(t) { return t.id === id; });
+                if (template) {
+                    selectedTemplateId = id;
+                    document.getElementById('modalTitle').textContent = '编辑模板';
+                    document.getElementById('templateName').value = template.name || '';
+                    document.getElementById('templateType').value = template.attack_type || 'CSRF';
+                    document.getElementById('templateHeaders').value = template.headers || '';
+                    document.getElementById('templatePayloads').value = template.payloads || '';
+                    document.getElementById('templateModal').classList.add('show');
+                }
+            };
+            
+            window.closeModal = function() {
+                document.getElementById('templateModal').classList.remove('show');
+            };
+            
+            window.saveTemplate = function() {
+                let data = {
+                    name: document.getElementById('templateName').value,
+                    attack_type: document.getElementById('templateType').value,
+                    headers: safeParseJSON(document.getElementById('templateHeaders').value),
+                    payloads: safeParseJSON(document.getElementById('templatePayloads').value)
+                };
+                
+                if (!data.name) {
+                    layer.msg('请输入模板名称', {icon:2});
+                    return;
+                }
+                
+                let url = selectedTemplateId ? '/api/forgery-templates/' + selectedTemplateId : '/api/forgery-templates';
+                let method = selectedTemplateId ? 'PUT' : 'POST';
+                
+                let xhr = new XMLHttpRequest();
+                xhr.open(method, url);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        let result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            layer.msg('保存成功', {icon:1});
+                            closeModal();
+                            loadTemplates();
+                        } else {
+                            layer.msg(result.message, {icon:2});
+                        }
+                    }
+                };
+                xhr.send(JSON.stringify(data));
+            };
+            
+            window.deleteTemplate = function(id) {
+                layer.confirm('确定删除此模板？', function(idx) {
+                    let xhr = new XMLHttpRequest();
+                    xhr.open('DELETE', '/api/forgery-templates/' + id);
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            let result = JSON.parse(xhr.responseText);
+                            if (result.success) {
+                                layer.msg('删除成功', {icon:1});
+                                loadTemplates();
+                            }
+                        }
+                    };
+                    xhr.send();
+                    layer.close(idx);
+                });
+            };
+            
+            window.runAttackTest = function() {
+                let btn = document.getElementById('testBtn');
+                btn.disabled = true;
+                btn.textContent = '执行中...';
+                document.getElementById('responseResult').textContent = '正在请求...';
+                
+                let data = {
+                    attack_type: document.getElementById('attackType').value,
+                    target_url: document.getElementById('targetUrl').value,
+                    template_id: selectedTemplateId,
+                    source_id: document.getElementById('sourceSelect').value,
+                    headers: safeParseJSON(document.getElementById('customHeaders').value)
+                };
+                
+                let xhr = new XMLHttpRequest();
+                xhr.open('POST', '/api/attack-test');
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onload = function() {
+                    btn.disabled = false;
+                    btn.textContent = '执行测试';
+                    
+                    if (xhr.status === 200) {
+                        let result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            document.getElementById('responseResult').innerHTML = 
+                                '<strong>状态码:</strong> ' + (result.status_code || '-') + '<br>' +
+                                '<strong>结果:</strong> ' + (result.blocked ? '拦截成功' : '请求发送') + '<br>' +
+                                (result.message ? result.message : '') + '<br>' +
+                                '<pre>' + escapeHtml(result.response || '') + '</pre>';
+                            loadLogs();
+                        } else {
+                            document.getElementById('responseResult').textContent = '错误: ' + result.message;
+                        }
+                    }
+                };
+                xhr.onerror = function() {
+                    btn.disabled = false;
+                    btn.textContent = '执行测试';
+                    document.getElementById('responseResult').textContent = '网络错误';
+                };
+                xhr.send(JSON.stringify(data));
+            };
+            
+            function safeParseJSON(str) {
+                if (!str) return null;
+                try {
+                    return JSON.parse(str);
+                } catch(e) {
+                    return null;
+                }
+            }
+            
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+        });
+    </script>
+    <style>
+        .modal-overlay {
+            position: fixed; top:0; left:0; right:0; bottom:0;
+            background: rgba(0,0,0,0.6); display:none;
+            align-items:center; justify-content:center; z-index:1000;
+        }
+        .modal-overlay.show { display:flex; }
+        .modal { background:white; border-radius:12px; overflow:hidden; }
+        .modal-header {
+            padding:20px 24px; border-bottom:1px solid #eee;
+            display:flex; justify-content:space-between; align-items:center;
+            background: #0f172a;
+        }
+        .modal-title { color:white; font-size:18px; font-weight:600; }
+        .modal-close { font-size:24px; cursor:pointer; color:#94a3b8; }
+        .modal-body { padding:24px; }
+        .modal-footer { padding:20px 24px; border-top:1px solid #eee; display:flex; gap:12px; justify-content:flex-end; background:#f8fafc; }
+        .btn-secondary { background:#e2e8f0; color:#334155; }
+        .btn-danger { background:#fee2e2; color:#991b1b; }
+    </style>
+</body>
+</html>

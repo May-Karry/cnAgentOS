@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理</title>
+    <link rel="stylesheet" href="/static/dist/layui-v2.13.6/layui-v2.13.6/layui/css/layui.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0f2f5; padding: 24px; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .page-title { font-size: 18px; font-weight: 600; color: #262626; }
+        .btn-group { display: flex; gap: 12px; }
+        .btn { height: 32px; padding: 0 16px; border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn-primary { background: #1890ff; border: 1px solid #1890ff; color: #fff; }
+        .btn-primary:hover { background: #40a9ff; border-color: #40a9ff; }
+        .btn-primary:active { background: #096dd9; border-color: #096dd9; }
+        .btn-default { background: #fff; border: 1px solid #d9d9d9; color: #595959; }
+        .btn-default:hover { color: #1890ff; border-color: #1890ff; }
+        .btn-default:active { color: #096dd9; border-color: #096dd9; }
+        .btn-danger { background: #fff; border: 1px solid #d9d9d9; color: #8c8c8c; }
+        .btn-danger:hover { color: #cf1322; border-color: #ff7875; background: #fff1f0; }
+        .btn-danger:active { color: #a8071a; border-color: #ff4d4f; background: #fff1f0; }
+        .search-box { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .search-form { display: flex; gap: 12px; align-items: center; }
+        .search-item { display: flex; align-items: center; gap: 8px; }
+        .search-label { font-size: 14px; color: #595959; }
+        .search-input { width: 200px; height: 32px; padding: 0 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; color: #262626; }
+        .search-input:focus { outline: none; border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.2); }
+        .data-table { background: #fff; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .layui-table { margin: 0; font-size: 14px; }
+        .layui-table th { background: #fafafa; font-weight: 600; color: #262626; border-bottom: 1px solid #f0f0f0; }
+        .layui-table td { color: #595959; border-bottom: 1px solid #f0f0f0; }
+        .layui-table tr:hover { background: #fafafa; }
+        .layui-table-checkbox { padding: 0; }
+        .layui-table th .layui-unselect, .layui-table td .layui-unselect { height: 40px; }
+        .action-btns { display: flex; gap: 8px; flex-wrap: nowrap; }
+        .action-btn { height: 26px; line-height: 26px; padding: 0 8px; border-radius: 4px; font-size: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; overflow: visible; }
+        .action-btn-edit { background: #fff; border: 1px solid #d9d9d9; color: #595959; }
+        .action-btn-edit:hover { color: #1890ff; border-color: #1890ff; }
+        .action-btn-delete { background: #fff; border: 1px solid #d9d9d9; color: #8c8c8c; }
+        .action-btn-delete:hover { color: #cf1322; border-color: #ff7875; background: #fff1f0; }
+        .action-btn-pwd { background: #e6f7ff; border: 1px solid #91d5ff; color: #1890ff; }
+        .action-btn-pwd:hover { background: #91d5ff; }
+        .action-btn-disabled { background: #f5f5f5; border: 1px solid #d9d9d9; color: #bfbfbf; cursor: not-allowed; }
+        .empty-state { text-align: center; padding: 60px 0; color: #8c8c8c; }
+        .empty-state i { font-size: 48px; color: #d9d9d9; margin-bottom: 16px; }
+        .system-badge { display: inline-block; padding: 2px 8px; background: #f5f5f5; color: #8c8c8c; font-size: 12px; border-radius: 4px; }
+        .custom-badge { display: inline-block; padding: 2px 8px; background: #e6f7ff; color: #1890ff; font-size: 12px; border-radius: 4px; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.show { display: flex; }
+        .modal-box { width: 440px; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; }
+        .modal-title { font-size: 16px; font-weight: 600; color: #262626; }
+        .modal-close { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #8c8c8c; font-size: 16px; border-radius: 4px; transition: all 0.2s; }
+        .modal-close:hover { background: #f5f5f5; color: #595959; }
+        .modal-body { padding: 24px; }
+        .form-row { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 14px; color: #262626; margin-bottom: 8px; font-weight: 500; }
+        .form-input { width: 100%; height: 36px; padding: 0 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; color: #262626; transition: border-color 0.2s, box-shadow 0.2s; }
+        .form-input:focus { outline: none; border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.2); }
+        .form-select { width: 100%; height: 36px; padding: 0 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; color: #262626; background: #fff; }
+        .form-select:focus { outline: none; border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.2); }
+        .form-tip { font-size: 12px; color: #8c8c8c; margin-top: 4px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 12px; }
+        .layui-laypage { padding: 16px; }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <h1 class="page-title">用户管理</h1>
+        <div class="btn-group">
+            <button class="btn btn-default" id="btnRefresh"><i class="layui-icon layui-icon-refresh"></i> 刷新</button>
+            <button class="btn btn-danger" id="btnBatchDelete" disabled><i class="layui-icon layui-icon-delete"></i> 批量删除</button>
+            <button class="btn btn-primary" id="btnAdd"><i class="layui-icon layui-icon-add-1"></i> 新增用户</button>
+        </div>
+    </div>
+    
+    <div class="search-box">
+        <form class="search-form" id="searchForm">
+            <div class="search-item">
+                <span class="search-label">用户名：</span>
+                <input type="text" id="searchUsername" class="search-input" placeholder="请输入用户名">
+            </div>
+            <button type="submit" class="btn btn-default"><i class="layui-icon layui-icon-search"></i> 搜索</button>
+        </form>
+    </div>
+    
+    <div class="data-table">
+        <table class="layui-table" id="userTable">
+            <thead>
+                <tr>
+                    <th style="width: 48px; text-align: center;"><input type="checkbox" id="selectAll"></th>
+                    <th style="width: 80px;">ID</th>
+                    <th>用户名</th>
+                    <th style="width: 160px;">所属角色</th>
+                    <th style="width: 180px;">创建时间</th>
+                    <th style="width: 180px;">操作</th>
+                </tr>
+            </thead>
+            <tbody id="userTableBody"></tbody>
+        </table>
+        <div id="pagination"></div>
+    </div>
+    
+    <div class="modal-overlay" id="userModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">新增用户</h3>
+                <div class="modal-close" id="closeModal"><i class="layui-icon layui-icon-close"></i></div>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userId">
+                    <div class="form-row">
+                        <label class="form-label" for="username">用户名</label>
+                        <input type="text" id="username" class="form-input" placeholder="请输入用户名">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" for="roleSelect">所属角色</label>
+                        <select id="roleSelect" class="form-select">
+                            <option value="">请选择角色</option>
+                        </select>
+                    </div>
+                    <div class="form-row" id="passwordRow">
+                        <label class="form-label" for="password">密码</label>
+                        <input type="password" id="password" class="form-input" placeholder="请输入密码">
+                    </div>
+                    <div class="form-row" id="confirmPasswordRow">
+                        <label class="form-label" for="confirmPassword">确认密码</label>
+                        <input type="password" id="confirmPassword" class="form-input" placeholder="请再次输入密码">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default" id="btnCancel">取消</button>
+                <button class="btn btn-primary" id="btnSubmit">确认</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="pwdModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title">修改密码</h3>
+                <div class="modal-close" id="closePwdModal"><i class="layui-icon layui-icon-close"></i></div>
+            </div>
+            <div class="modal-body">
+                <form id="pwdForm">
+                    <input type="hidden" id="pwdUserId">
+                    <div class="form-row">
+                        <label class="form-label" for="oldPassword">原密码</label>
+                        <input type="password" id="oldPassword" class="form-input" placeholder="请输入原密码">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" for="newPassword">新密码</label>
+                        <input type="password" id="newPassword" class="form-input" placeholder="请输入新密码">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" for="confirmNewPassword">确认新密码</label>
+                        <input type="password" id="confirmNewPassword" class="form-input" placeholder="请再次输入新密码">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default" id="btnCancelPwd">取消</button>
+                <button class="btn btn-primary" id="btnSubmitPwd">确认修改</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/dist/layui-v2.13.6/layui-v2.13.6/layui/layui.js"></script>
+    <script>
+        layui.use(['form', 'layer', 'laypage'], function() {
+            var form = layui.form;
+            var layer = layui.layer;
+            var laypage = layui.laypage;
+            
+            var currentPage = 1;
+            var pageSize = 20;
+            var allRoles = [];
+            
+            function loadRoles(callback) {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', '/api/roles', true);
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            allRoles = result.data || [];
+                            renderRoleOptions();
+                            if (callback) callback();
+                        }
+                    }
+                };
+                xhr.send();
+            }
+            
+            function renderRoleOptions() {
+        var select = document.getElementById('roleSelect');
+        select.innerHTML = '<option value="">请选择角色</option>';
+        allRoles.forEach(function(role) {
+            // 禁用超级管理员选项，不允许选择
+            var disabled = role.code === 'admin' ? ' disabled' : '';
+            select.innerHTML += '<option value="' + role.id + '"' + disabled + '>' + role.name + (role.code === 'admin' ? ' (不可选)' : '') + '</option>';
+        });
+    }
+            
+            function loadUsers(page) {
+                currentPage = page || 1;
+                var username = document.getElementById('searchUsername').value;
+                
+                var url = '/api/users?page=' + currentPage + '&page_size=' + pageSize;
+                if (username) url += '&username=' + encodeURIComponent(username);
+                
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', url, true);
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        try {
+                            var result = JSON.parse(xhr.responseText);
+                            if (result.success) {
+                                renderTable(result.data);
+                                renderPagination(result.total, currentPage);
+                            } else {
+                                layer.msg(result.message || '加载失败', {icon: 2});
+                            }
+                        } catch (e) {
+                            layer.msg('响应解析错误', {icon: 2});
+                        }
+                    } else {
+                        layer.msg('请求失败: ' + xhr.status, {icon: 2});
+                    }
+                };
+                xhr.onerror = function() { layer.msg('网络错误', {icon: 2}); };
+                xhr.send();
+            }
+            
+            function renderTable(data) {
+                var tbody = document.getElementById('userTableBody');
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><i class="layui-icon layui-icon-empty"></i><p>暂无数据</p></td></tr>';
+                    return;
+                }
+                
+                var html = '';
+                data.forEach(function(item) {
+                    var isAdmin = item.username === 'admin';
+                    var roleName = item.role_name || '未分配';
+                    var isSystemRole = item.role_is_system === 1;
+                    
+                    html += '<tr>' +
+                        '<td style="text-align: center;"><input type="checkbox" value="' + item.id + '"' + (isAdmin ? ' disabled' : '') + '></td>' +
+                        '<td>' + item.id + '</td>' +
+                        '<td>' + item.username + (isAdmin ? ' <span class="system-badge">系统用户</span>' : '') + '</td>' +
+                        '<td>' + (isSystemRole ? '<span class="system-badge">' + roleName + '</span>' : '<span class="custom-badge">' + roleName + '</span>') + '</td>' +
+                        '<td>' + item.create_at + '</td>' +
+                        '<td><div class="action-btns">';
+                    
+                    if (isAdmin) {
+                        html += '<button class="action-btn action-btn-disabled" title="系统用户不可编辑">编辑</button>' +
+                                '<button class="action-btn action-btn-disabled" title="系统用户不可删除">删除</button>' +
+                                '<button class="action-btn action-btn-pwd" data-user-id="' + item.id + '" data-username="' + item.username + '">修改密码</button>';
+                    } else {
+                        html += '<button class="action-btn action-btn-edit" data-user-id="' + item.id + '">编辑</button>' +
+                                '<button class="action-btn action-btn-delete" data-user-id="' + item.id + '">删除</button>' +
+                                '<button class="action-btn action-btn-pwd" data-user-id="' + item.id + '" data-username="' + item.username + '">修改密码</button>';
+                    }
+                    
+                    html += '</div></td></tr>';
+                });
+                tbody.innerHTML = html;
+                form.render('checkbox');
+                updateBatchDeleteBtn();
+            }
+            
+            function renderPagination(total, page) {
+                laypage.render({
+                    elem: 'pagination',
+                    count: total,
+                    curr: page,
+                    limit: pageSize,
+                    layout: ['count', 'prev', 'page', 'next', 'limit', 'refresh', 'skip'],
+                    jump: function(obj, first) {
+                        if (first) return;
+                        loadUsers(obj.curr);
+                    }
+                });
+            }
+            
+            function updateBatchDeleteBtn() {
+                var checkboxes = document.querySelectorAll('#userTableBody input[type="checkbox"]:not(:disabled):checked');
+                document.getElementById('btnBatchDelete').disabled = checkboxes.length === 0;
+            }
+            
+            function showModal(title, data) {
+                document.getElementById('modalTitle').textContent = title;
+                document.getElementById('userId').value = data ? data.id : '';
+                document.getElementById('username').value = data ? data.username : '';
+                document.getElementById('roleSelect').value = data ? data.role_id || '' : '';
+                document.getElementById('password').value = '';
+                document.getElementById('confirmPassword').value = '';
+                
+                if (data) {
+                    document.getElementById('passwordRow').style.display = 'none';
+                    document.getElementById('confirmPasswordRow').style.display = 'none';
+                    if (data.username === 'admin') {
+                        document.getElementById('username').disabled = true;
+                        document.getElementById('roleSelect').disabled = true;
+                    } else {
+                        document.getElementById('username').disabled = false;
+                        document.getElementById('roleSelect').disabled = false;
+                    }
+                } else {
+                    document.getElementById('passwordRow').style.display = 'block';
+                    document.getElementById('confirmPasswordRow').style.display = 'block';
+                    document.getElementById('username').disabled = false;
+                    document.getElementById('roleSelect').disabled = false;
+                }
+                
+                document.getElementById('userModal').classList.add('show');
+            }
+            
+            function hideModal() {
+                document.getElementById('userModal').classList.remove('show');
+            }
+            
+            function showPwdModal(userId, username) {
+                document.getElementById('pwdUserId').value = userId;
+                document.getElementById('oldPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmNewPassword').value = '';
+                document.getElementById('pwdModal').classList.add('show');
+            }
+            
+            function hidePwdModal() {
+                document.getElementById('pwdModal').classList.remove('show');
+            }
+            
+            document.getElementById('userTableBody').addEventListener('click', function(e) {
+                var target = e.target;
+                if (target.classList.contains('action-btn')) {
+                    var userId = parseInt(target.getAttribute('data-user-id'));
+                    if (target.classList.contains('action-btn-edit')) {
+                        var xhr = new XMLHttpRequest();
+                        xhr.open('GET', '/api/users/' + userId, true);
+                        xhr.onload = function() {
+                            if (xhr.status === 200) {
+                                var result = JSON.parse(xhr.responseText);
+                                if (result.success) {
+                                    showModal('编辑用户', result.data);
+                                }
+                            }
+                        };
+                        xhr.send();
+                    } else if (target.classList.contains('action-btn-delete')) {
+                        layer.confirm('确定要删除该用户吗？', function(index) {
+                            var xhr = new XMLHttpRequest();
+                            xhr.open('DELETE', '/api/users/' + userId, true);
+                            xhr.onload = function() {
+                                if (xhr.status === 200) {
+                                    var result = JSON.parse(xhr.responseText);
+                                    if (result.success) {
+                                        layer.msg('删除成功', {icon: 1});
+                                        loadUsers(currentPage);
+                                    } else {
+                                        layer.msg(result.message || '删除失败', {icon: 2});
+                                    }
+                                }
+                            };
+                            xhr.send();
+                            layer.close(index);
+                        });
+                    } else if (target.classList.contains('action-btn-pwd')) {
+                        var username = target.getAttribute('data-username');
+                        showPwdModal(userId, username);
+                    }
+                }
+            });
+            
+            document.getElementById('btnAdd').addEventListener('click', function() { showModal('新增用户', null); });
+            document.getElementById('btnRefresh').addEventListener('click', function() { loadUsers(1); });
+            document.getElementById('btnCancel').addEventListener('click', hideModal);
+            document.getElementById('closeModal').addEventListener('click', hideModal);
+            
+            document.getElementById('btnSubmit').addEventListener('click', function() {
+                var id = document.getElementById('userId').value;
+                var username = document.getElementById('username').value;
+                var roleId = document.getElementById('roleSelect').value;
+                var password = document.getElementById('password').value;
+                var confirmPassword = document.getElementById('confirmPassword').value;
+                
+                if (!username) { layer.msg('请输入用户名', {icon: 2}); return; }
+                if (!roleId) { layer.msg('请选择角色', {icon: 2}); return; }
+                
+                if (!id) {
+                    if (!password) { layer.msg('请输入密码', {icon: 2}); return; }
+                    if (password !== confirmPassword) { layer.msg('两次输入的密码不一致', {icon: 2}); return; }
+                }
+                
+                var data = {username: username, role_id: parseInt(roleId)};
+                if (password) data.password = password;
+                
+                var url = id ? '/api/users/' + id : '/api/users';
+                var method = id ? 'PUT' : 'POST';
+                
+                var xhr = new XMLHttpRequest();
+                xhr.open(method, url, true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            layer.msg(id ? '更新成功' : '新增成功', {icon: 1});
+                            hideModal();
+                            loadUsers(currentPage);
+                        } else {
+                            layer.msg(result.message || '操作失败', {icon: 2});
+                        }
+                    }
+                };
+                xhr.send(JSON.stringify(data));
+            });
+            
+            document.getElementById('btnBatchDelete').addEventListener('click', function() {
+                var checkboxes = document.querySelectorAll('#userTableBody input[type="checkbox"]:not(:disabled):checked');
+                var ids = Array.from(checkboxes).map(function(cb) { return parseInt(cb.value); });
+                if (ids.length === 0) return;
+                
+                layer.confirm('确定要删除选中的 ' + ids.length + ' 个用户吗？', function(index) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('DELETE', '/api/users/batch', true);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            var result = JSON.parse(xhr.responseText);
+                            if (result.success) {
+                                layer.msg('批量删除成功', {icon: 1});
+                                loadUsers(1);
+                            } else {
+                                layer.msg(result.message || '删除失败', {icon: 2});
+                            }
+                        }
+                    };
+                    xhr.send(JSON.stringify({ids: ids}));
+                    layer.close(index);
+                });
+            });
+            
+            document.getElementById('searchForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                loadUsers(1);
+            });
+            
+            document.getElementById('selectAll').addEventListener('change', function() {
+                var checkboxes = document.querySelectorAll('#userTableBody input[type="checkbox"]:not(:disabled)');
+                checkboxes.forEach(function(cb) { cb.checked = document.getElementById('selectAll').checked; });
+                updateBatchDeleteBtn();
+            });
+            
+            document.getElementById('userTableBody').addEventListener('change', function(e) {
+                if (e.target.tagName === 'INPUT' && e.target.type === 'checkbox') {
+                    updateBatchDeleteBtn();
+                    var allChecked = document.querySelectorAll('#userTableBody input[type="checkbox"]:not(:disabled)').length > 0 &&
+                                   document.querySelectorAll('#userTableBody input[type="checkbox"]:not(:disabled):checked').length === document.querySelectorAll('#userTableBody input[type="checkbox"]:not(:disabled)').length;
+                    document.getElementById('selectAll').checked = allChecked;
+                }
+            });
+            
+            document.getElementById('closePwdModal').addEventListener('click', hidePwdModal);
+            document.getElementById('btnCancelPwd').addEventListener('click', hidePwdModal);
+            
+            document.getElementById('btnSubmitPwd').addEventListener('click', function() {
+                var userId = document.getElementById('pwdUserId').value;
+                var oldPassword = document.getElementById('oldPassword').value;
+                var newPassword = document.getElementById('newPassword').value;
+                var confirmPassword = document.getElementById('confirmNewPassword').value;
+                
+                if (!oldPassword) { layer.msg('请输入原密码', {icon: 2}); return; }
+                if (!newPassword) { layer.msg('请输入新密码', {icon: 2}); return; }
+                if (newPassword !== confirmPassword) { layer.msg('两次输入的新密码不一致', {icon: 2}); return; }
+                
+                var xhr = new XMLHttpRequest();
+                xhr.open('PUT', '/api/users/' + userId + '/password', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            layer.msg('密码修改成功', {icon: 1});
+                            hidePwdModal();
+                        } else {
+                            layer.msg(result.message || '密码修改失败', {icon: 2});
+                        }
+                    }
+                };
+                xhr.send(JSON.stringify({old_password: oldPassword, new_password: newPassword}));
+            });
+            
+            loadRoles(function() { loadUsers(1); });
+        });
+    </script>
+</body>
+</html>

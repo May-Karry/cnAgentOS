@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角色管理</title>
+    <link rel="stylesheet" href="/static/dist/layui-v2.13.6/layui-v2.13.6/layui/css/layui.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0f2f5; padding: 24px; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .page-title { font-size: 18px; font-weight: 600; color: #262626; }
+        .btn { height: 32px; padding: 0 16px; border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn-primary { background: #1890ff; border: 1px solid #1890ff; color: #fff; }
+        .btn-primary:hover { background: #40a9ff; border-color: #40a9ff; }
+        .btn-default { background: #fff; border: 1px solid #d9d9d9; color: #595959; }
+        .btn-default:hover { color: #1890ff; border-color: #1890ff; }
+        .btn-danger { background: #fff; border: 1px solid #d9d9d9; color: #8c8c8c; }
+        .btn-danger:hover { color: #cf1322; border-color: #ff7875; background: #fff1f0; }
+        .btn-sm { height: 28px; padding: 0 12px; font-size: 12px; }
+        
+        .search-box { background: #fff; padding: 16px 20px; border-radius: 8px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .search-form { display: flex; gap: 12px; align-items: center; }
+        .search-input { width: 240px; height: 32px; padding: 0 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; }
+        .search-input:focus { outline: none; border-color: #1890ff; }
+        
+        .data-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); overflow: hidden; }
+        .card-header { padding: 16px 20px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        .card-title { font-size: 14px; font-weight: 600; color: #262626; }
+        .card-count { font-size: 12px; color: #8c8c8c; }
+        
+        .table-container { overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .data-table th { background: #fafafa; padding: 12px 16px; text-align: left; font-weight: 600; color: #262626; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
+        .data-table td { padding: 12px 16px; color: #595959; border-bottom: 1px solid #f0f0f0; }
+        .data-table tr:hover { background: #fafafa; }
+        
+        .system-badge { display: inline-block; padding: 2px 8px; background: #f5f5f5; color: #8c8c8c; font-size: 12px; border-radius: 4px; }
+        .custom-badge { display: inline-block; padding: 2px 8px; background: #e6f7ff; color: #1890ff; font-size: 12px; border-radius: 4px; }
+        .disabled-text { color: #bfbfbf; }
+        
+        .action-group { display: flex; gap: 6px; }
+        .action-btn { height: 26px; padding: 0 10px; border-radius: 4px; font-size: 12px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+        .action-btn-edit { background: #fff; border-color: #d9d9d9; color: #595959; }
+        .action-btn-edit:hover { border-color: #1890ff; color: #1890ff; }
+        .action-btn-perm { background: #e6f7ff; border-color: #91d5ff; color: #1890ff; }
+        .action-btn-perm:hover { background: #91d5ff; }
+        .action-btn-delete { background: #fff; border-color: #d9d9d9; color: #8c8c8c; }
+        .action-btn-delete:hover { border-color: #ff7875; color: #cf1322; }
+        .action-btn-disabled { background: #f5f5f5; border-color: #d9d9d9; color: #bfbfbf; cursor: not-allowed; }
+        
+        .empty-state { text-align: center; padding: 60px 0; color: #8c8c8c; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.show { display: flex; }
+        .modal-box { width: 440px; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; }
+        .modal-title { font-size: 16px; font-weight: 600; color: #262626; }
+        .modal-close { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #8c8c8c; border-radius: 4px; }
+        .modal-close:hover { background: #f5f5f5; }
+        .modal-body { padding: 24px; }
+        .form-row { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 14px; color: #262626; margin-bottom: 8px; font-weight: 500; }
+        .form-input { width: 100%; height: 36px; padding: 0 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; }
+        .form-input:focus { outline: none; border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.2); }
+        .form-tip { font-size: 12px; color: #8c8c8c; margin-top: 4px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 12px; }
+        
+        .layui-laypage { padding: 16px; text-align: right; }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <h1 class="page-title">角色管理</h1>
+        <div class="btn-group">
+            <button class="btn btn-default" id="btnRefresh"><i class="layui-icon layui-icon-refresh"></i> 刷新</button>
+            <button class="btn btn-primary" id="btnAdd"><i class="layui-icon layui-icon-add-1"></i> 新增角色</button>
+        </div>
+    </div>
+    
+    <div class="search-box">
+        <form class="search-form" id="searchForm">
+            <input type="text" class="search-input" id="searchKeyword" placeholder="搜索角色名称或代码">
+            <button type="submit" class="btn btn-default"><i class="layui-icon layui-icon-search"></i> 搜索</button>
+        </form>
+    </div>
+    
+    <div class="data-card">
+        <div class="card-header">
+            <span class="card-title">角色列表</span>
+            <span class="card-count" id="totalCount">共 0 条记录</span>
+        </div>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">ID</th>
+                        <th>角色名称</th>
+                        <th style="width: 150px;">角色代码</th>
+                        <th style="width: 120px;">类型</th>
+                        <th style="width: 180px;">创建时间</th>
+                        <th style="width: 200px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="roleTableBody">
+                    <tr><td colspan="6" class="empty-state"><p>暂无数据</p></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="pagination"></div>
+    </div>
+    
+    <div class="modal-overlay" id="roleModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">新增角色</h3>
+                <div class="modal-close" id="closeModal"><i class="layui-icon layui-icon-close"></i></div>
+            </div>
+            <div class="modal-body">
+                <form id="roleForm">
+                    <input type="hidden" id="roleId">
+                    <div class="form-row">
+                        <label class="form-label">角色名称</label>
+                        <input type="text" id="roleName" class="form-input" placeholder="请输入角色名称">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label">角色代码</label>
+                        <input type="text" id="roleCode" class="form-input" placeholder="请输入角色代码（英文或拼音）">
+                        <p class="form-tip">角色代码用于程序识别，建议使用英文或拼音，不可修改</p>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default" id="btnCancel">取消</button>
+                <button class="btn btn-primary" id="btnSubmit">确认</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/dist/layui-v2.13.6/layui-v2.13.6/layui/layui.js"></script>
+    <script>
+        layui.use(['layer', 'laypage'], function() {
+            var layer = layui.layer;
+            var laypage = layui.laypage;
+            
+            var currentPage = 1;
+            var pageSize = 10;
+            
+            function loadRoles(page) {
+                currentPage = page || 1;
+                var keyword = document.getElementById('searchKeyword').value;
+                
+                var xhr = new XMLHttpRequest();
+                var url = '/api/roles?page=' + currentPage + '&page_size=' + pageSize;
+                if (keyword) url += '&keyword=' + encodeURIComponent(keyword);
+                xhr.open('GET', url, true);
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            renderTable(result.data || result);
+                            document.getElementById('totalCount').textContent = '共 ' + (result.total || result.length) + ' 条记录';
+                        } else {
+                            layer.msg(result.message || '加载失败', {icon: 2});
+                        }
+                    }
+                };
+                xhr.send();
+            }
+            
+            function renderTable(roles) {
+                var tbody = document.getElementById('roleTableBody');
+                if (!roles || roles.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><p>暂无数据</p></td></tr>';
+                    document.getElementById('pagination').innerHTML = '';
+                    return;
+                }
+                
+                var html = '';
+                roles.forEach(function(role) {
+                    var isSystem = role.is_system === 1;
+                    html += '<tr>' +
+                        '<td>' + role.id + '</td>' +
+                        '<td>' + role.name + '</td>' +
+                        '<td>' + role.code + '</td>' +
+                        '<td>' + (isSystem ? '<span class="system-badge">系统角色</span>' : '<span class="custom-badge">自定义</span>') + '</td>' +
+                        '<td>' + role.create_at + '</td>' +
+                        '<td><div class="action-group">';
+                    
+                    if (isSystem) {
+                        html += '<button class="action-btn action-btn-disabled" title="系统角色不可修改">编辑</button>' +
+                                '<button class="action-btn action-btn-perm btn-sm" onclick="goToPermissions(' + role.id + ')">配置权限</button>' +
+                                '<button class="action-btn action-btn-disabled" title="系统角色不可删除">删除</button>';
+                    } else {
+                        html += '<button class="action-btn action-btn-edit btn-sm" onclick="editRole(' + role.id + ')">编辑</button>' +
+                                '<button class="action-btn action-btn-perm btn-sm" onclick="goToPermissions(' + role.id + ')">配置权限</button>' +
+                                '<button class="action-btn action-btn-delete btn-sm" onclick="deleteRole(' + role.id + ')">删除</button>';
+                    }
+                    
+                    html += '</div></td></tr>';
+                });
+                tbody.innerHTML = html;
+            }
+            
+            function editRole(id) {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', '/api/roles/' + id, true);
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            document.getElementById('modalTitle').textContent = '编辑角色';
+                            document.getElementById('roleId').value = result.data.id;
+                            document.getElementById('roleName').value = result.data.name;
+                            document.getElementById('roleCode').value = result.data.code;
+                            document.getElementById('roleCode').disabled = true;
+                            document.getElementById('roleModal').classList.add('show');
+                        }
+                    }
+                };
+                xhr.send();
+            }
+            
+            function deleteRole(id) {
+                layer.confirm('确定要删除该角色吗？', function(index) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('DELETE', '/api/roles/' + id, true);
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            var result = JSON.parse(xhr.responseText);
+                            if (result.success) {
+                                layer.msg('删除成功', {icon: 1});
+                                loadRoles(currentPage);
+                            } else {
+                                layer.msg(result.message || '删除失败', {icon: 2});
+                            }
+                        }
+                    };
+                    xhr.send();
+                    layer.close(index);
+                });
+            }
+            
+            function goToPermissions(roleId) {
+                window.top.location.href = '/admin/permissions?role_id=' + roleId;
+            }
+            
+            document.getElementById('btnAdd').addEventListener('click', function() {
+                document.getElementById('modalTitle').textContent = '新增角色';
+                document.getElementById('roleId').value = '';
+                document.getElementById('roleName').value = '';
+                document.getElementById('roleCode').value = '';
+                document.getElementById('roleCode').disabled = false;
+                document.getElementById('roleModal').classList.add('show');
+            });
+            
+            document.getElementById('btnRefresh').addEventListener('click', function() { loadRoles(1); });
+            document.getElementById('btnCancel').addEventListener('click', function() { document.getElementById('roleModal').classList.remove('show'); });
+            document.getElementById('closeModal').addEventListener('click', function() { document.getElementById('roleModal').classList.remove('show'); });
+            
+            document.getElementById('btnSubmit').addEventListener('click', function() {
+                var id = document.getElementById('roleId').value;
+                var name = document.getElementById('roleName').value;
+                var code = document.getElementById('roleCode').value;
+                
+                if (!name) {
+                    layer.msg('请输入角色名称', {icon: 2});
+                    return;
+                }
+                if (!code) {
+                    layer.msg('请输入角色代码', {icon: 2});
+                    return;
+                }
+                
+                var xhr = new XMLHttpRequest();
+                xhr.open(id ? 'PUT' : 'POST', id ? '/api/roles/' + id : '/api/roles', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            layer.msg(id ? '更新成功' : '创建成功', {icon: 1});
+                            document.getElementById('roleModal').classList.remove('show');
+                            loadRoles(1);
+                        } else {
+                            layer.msg(result.message || '操作失败', {icon: 2});
+                        }
+                    }
+                };
+                xhr.send(JSON.stringify({name: name, code: code}));
+            });
+            
+            document.getElementById('searchForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                loadRoles(1);
+            });
+            
+            loadRoles(1);
+        });
+    </script>
+</body>
+</html>

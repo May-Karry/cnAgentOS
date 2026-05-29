@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型引擎 - AI智能瞭望与智能问数系统</title>
+    <link rel="stylesheet" href="/static/dist/layui-v2.13.6/layui-v2.13.6/layui/css/layui.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; 
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .page-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 32px;
+        }
+        .page-title { 
+            font-size: 28px; 
+            font-weight: 700; 
+            color: #fff;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        .page-title::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 28px;
+            background: linear-gradient(180deg, #00d4ff, #7c3aed);
+            border-radius: 3px;
+            margin-right: 12px;
+            vertical-align: middle;
+        }
+        .btn-group { display: flex; gap: 12px; }
+        .btn { 
+            height: 40px; 
+            padding: 0 24px; 
+            border-radius: 8px; 
+            font-size: 14px; 
+            cursor: pointer; 
+            transition: all 0.3s;
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 8px;
+            border: none;
+        }
+        .btn-primary { 
+            background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+        }
+        .btn-primary:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.6);
+        }
+        .btn-glow {
+            animation: glow 2s infinite alternate;
+        }
+        @keyframes glow {
+            from { box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4); }
+            to { box-shadow: 0 4px 25px rgba(0, 212, 255, 0.6); }
+        }
+        .stats-bar {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 16px;
+            padding: 20px 32px;
+            flex: 1;
+            min-width: 200px;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+            margin-top: 4px;
+        }
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        @media (max-width: 1200px) { .models-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { .models-grid { grid-template-columns: 1fr; } }
+        .model-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 28px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+        .model-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed, #00d4ff);
+            background-size: 200% 100%;
+            animation: gradient 3s linear infinite;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+        .model-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(124, 58, 237, 0.5);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .model-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        .model-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(124,58,237,0.2));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+        .model-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-default {
+            background: linear-gradient(135deg, #00d4ff, #00a8cc);
+            color: #fff;
+        }
+        .badge-normal {
+            background: rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.8);
+        }
+        .model-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+        .model-type {
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 20px;
+        }
+        .model-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .info-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 12px;
+        }
+        .info-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .info-value {
+            font-size: 14px;
+            color: rgba(255,255,255,0.9);
+            word-break: break-all;
+        }
+        .token-display {
+            background: rgba(124, 58, 237, 0.2);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .token-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #a78bfa;
+        }
+        .token-label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+            margin-top: 4px;
+        }
+        .model-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .action-btn {
+            flex: 1;
+            height: 38px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .action-test {
+            background: rgba(0,212,255,0.15);
+            color: #00d4ff;
+            border: 1px solid rgba(0,212,255,0.3);
+        }
+        .action-test:hover {
+            background: rgba(0,212,255,0.25);
+        }
+        .action-edit {
+            background: rgba(124,58,237,0.15);
+            color: #a78bfa;
+            border: 1px solid rgba(124,58,237,0.3);
+        }
+        .action-edit:hover {
+            background: rgba(124,58,237,0.25);
+        }
+        .action-delete {
+            background: rgba(239,68,68,0.15);
+            color: #f87171;
+            border: 1px solid rgba(239,68,68,0.3);
+        }
+        .action-delete:hover {
+            background: rgba(239,68,68,0.25);
+        }
+        .action-default {
+            background: rgba(16,185,129,0.15);
+            color: #34d399;
+            border: 1px solid rgba(16,185,129,0.3);
+        }
+        .action-default:hover {
+            background: rgba(16,185,129,0.25);
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 32px;
+        }
+        .page-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.8);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .page-btn:hover, .page-btn.active {
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+            border-color: transparent;
+            color: #fff;
+        }
+        .page-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: rgba(255,255,255,0.5);
+        }
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+        .empty-text { font-size: 16px; }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            width: 520px;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+        .modal-header {
+            padding: 24px 28px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .modal-title { font-size: 18px; font-weight: 600; color: #fff; }
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: rgba(255,255,255,0.5);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .modal-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .modal-body { padding: 28px; }
+        .form-row { margin-bottom: 24px; }
+        .form-label { display: block; font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 8px; font-weight: 500; }
+        .form-input {
+            width: 100%;
+            height: 46px;
+            padding: 0 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 10px;
+            font-size: 14px;
+            color: #fff;
+            transition: all 0.3s;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124,58,237,0.2);
+        }
+        .form-input::placeholder { color: rgba(255,255,255,0.3); }
+        .form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+        .form-checkbox input {
+            width: 18px;
+            height: 18px;
+            accent-color: #7c3aed;
+        }
+        .modal-footer {
+            padding: 20px 28px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        .btn-cancel {
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.8);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .btn-cancel:hover { background: rgba(255,255,255,0.15); }
+        .btn-submit {
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+            color: #fff;
+            min-width: 120px;
+        }
+        .btn-submit:hover { opacity: 0.9; }
+        
+        .chat-modal .modal-box { width: 700px; }
+        .chat-container {
+            background: rgba(0,0,0,0.3);
+            border-radius: 16px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .chat-message {
+            margin-bottom: 16px;
+            display: flex;
+            gap: 12px;
+        }
+        .chat-message.user { flex-direction: row-reverse; }
+        .chat-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .chat-message.assistant .chat-avatar {
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+        }
+        .chat-message.user .chat-avatar {
+            background: rgba(255,255,255,0.2);
+        }
+        .chat-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: rgba(255,255,255,0.9);
+        }
+        .chat-message.assistant .chat-bubble {
+            background: rgba(255,255,255,0.1);
+            border-bottom-left-radius: 4px;
+        }
+        .chat-message.user .chat-bubble {
+            background: linear-gradient(135deg, rgba(0,212,255,0.3), rgba(124,58,237,0.3));
+            border-bottom-right-radius: 4px;
+        }
+        .chat-bubble.error {
+            background: rgba(239,68,68,0.2);
+            color: #f87171;
+        }
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 8px 0;
+        }
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #7c3aed;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-8px); opacity: 1; }
+        }
+        .chat-input-wrapper {
+            display: flex;
+            gap: 12px;
+        }
+        .chat-input {
+            flex: 1;
+            height: 48px;
+            padding: 0 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 24px;
+            font-size: 14px;
+            color: #fff;
+        }
+        .chat-input:focus {
+            outline: none;
+            border-color: #7c3aed;
+        }
+        .chat-send {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        .chat-send:hover { transform: scale(1.05); }
+        .chat-send:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .layui-laypage { text-align: center; padding: 20px; }
+        .layui-laypage a, .layui-laypage span {
+            background: rgba(255,255,255,0.1) !important;
+            border: 1px solid rgba(255,255,255,0.15) !important;
+            color: rgba(255,255,255,0.8) !important;
+            border-radius: 8px !important;
+            margin: 0 4px !important;
+        }
+        .layui-laypage .layui-laypage-curr .layui-laypage-em {
+            background: linear-gradient(135deg, #00d4ff, #7c3aed) !important;
+            border-radius: 8px !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <h1 class="page-title">模型引擎</h1>
+        <div class="btn-group">
+            <button class="btn btn-primary btn-glow" id="btnAdd"><i class="layui-icon layui-icon-add-1"></i> 新增模型</button>
+        </div>
+    </div>
+    
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-value" id="totalModels">0</div>
+            <div class="stat-label">模型总数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="totalTokens">0</div>
+            <div class="stat-label">Token消耗</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="defaultModel">-</div>
+            <div class="stat-label">默认模型</div>
+        </div>
+    </div>
+    
+    <div class="models-grid" id="modelsGrid"></div>
+    <div id="pagination"></div>
+    
+    <div class="modal-overlay" id="modelModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">新增模型</h3>
+                <div class="modal-close" id="closeModal"><i class="layui-icon layui-icon-close"></i></div>
+            </div>
+            <div class="modal-body">
+                <form id="modelForm">
+                    <input type="hidden" id="modelId">
+                    <div class="form-row">
+                        <label class="form-label">模型名称</label>
+                        <input type="text" id="modelName" class="form-input" placeholder="例如：DeepSeek V3">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label">模型标识</label>
+                        <input type="text" id="modelIdentifier" class="form-input" placeholder="例如：deepseek-v3">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label">API地址</label>
+                        <input type="text" id="baseUrl" class="form-input" placeholder="例如：https://api.deepseek.com/v1">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label">API密钥</label>
+                        <input type="password" id="apiKey" class="form-input" placeholder="请输入API密钥">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-checkbox">
+                            <input type="checkbox" id="isDefault">
+                            <span>设为系统默认模型</span>
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" id="btnCancel">取消</button>
+                <button class="btn btn-submit" id="btnSubmit">确认</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-overlay chat-modal" id="chatModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title">模型对话测试 - <span id="chatModelName"></span></h3>
+                <div class="modal-close" id="closeChatModal"><i class="layui-icon layui-icon-close"></i></div>
+            </div>
+            <div class="modal-body">
+                <div class="chat-container" id="chatContainer"></div>
+                <div class="chat-input-wrapper">
+                    <input type="text" class="chat-input" id="chatInput" placeholder="输入测试消息...">
+                    <button class="chat-send" id="chatSend"><i class="layui-icon layui-icon-release"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/dist/layui-v2.13.6/layui-v2.13.6/layui/layui.js"></script>
+    <script>
+        layui.use(['layer', 'laypage'], function() {
+            var layer = layui.layer;
+            var laypage = layui.laypage;
+            
+            var currentPage = 1;
+            var pageSize = 6;
+            var allModels = [];
+            var currentChatModelId = null;
+            var eventSource = null;
+            
+            function loadModels(page) {
+                currentPage = page || 1;
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', '/api/models', true);
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            allModels = result.data || [];
+                            updateStats();
+                            renderModels(allModels);
+                            renderPagination(allModels.length);
+                        }
+                    }
+                };
+                xhr.send();
+            }
+            
+            function updateStats() {
+                document.getElementById('totalModels').textContent = allModels.length;
+                var totalTokens = allModels.reduce(function(sum, m) { return sum + (m.total_tokens || 0); }, 0);
+                document.getElementById('totalTokens').textContent = formatNumber(totalTokens);
+                var defaultModel = allModels.find(function(m) { return m.is_default; });
+                document.getElementById('defaultModel').textContent = defaultModel ? defaultModel.name : '-';
+            }
+            
+            function formatNumber(num) {
+                if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+                if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+                return num.toString();
+            }
+            
+            function renderModels(models) {
+                var start = (currentPage - 1) * pageSize;
+                var end = start + pageSize;
+                var pageModels = models.slice(start, end);
+                var grid = document.getElementById('modelsGrid');
+                
+                if (pageModels.length === 0) {
+                    grid.innerHTML = '<div class="empty-state" style="grid-column: 1/-1;"><div class="empty-icon">🤖</div><div class="empty-text">暂无模型，请点击右上角添加模型</div></div>';
+                    return;
+                }
+                
+                var html = '';
+                pageModels.forEach(function(model) {
+                    html += '<div class="model-card">' +
+                        '<div class="model-header">' +
+                            '<div class="model-icon">🤖</div>' +
+                            (model.is_default ? '<span class="model-badge badge-default">默认</span>' : '<span class="model-badge badge-normal">自建</span>') +
+                        '</div>' +
+                        '<div class="model-name">' + escapeHtml(model.name) + '</div>' +
+                        '<div class="model-type">' + escapeHtml(model.model_name) + '</div>' +
+                        '<div class="model-info">' +
+                            '<div class="info-item">' +
+                                '<div class="info-label">API地址</div>' +
+                                '<div class="info-value">' + escapeHtml(model.base_url) + '</div>' +
+                            '</div>' +
+                            '<div class="info-item">' +
+                                '<div class="info-label">模型标识</div>' +
+                                '<div class="info-value">' + escapeHtml(model.model_name) + '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="token-display">' +
+                            '<div class="token-value">' + formatNumber(model.total_tokens || 0) + '</div>' +
+                            '<div class="token-label">Token 消耗总量</div>' +
+                        '</div>' +
+                        '<div class="model-actions">' +
+                            '<button class="action-btn action-test" data-id="' + model.id + '"><i class="layui-icon layui-icon-survey"></i> 测试</button>';
+                    
+                    if (!model.is_default) {
+                        html += '<button class="action-btn action-default" data-id="' + model.id + '"><i class="layui-icon layui-icon-ok-circle"></i> 设为默认</button>';
+                    }
+                    
+                    html += '<button class="action-btn action-edit" data-id="' + model.id + '"><i class="layui-icon layui-icon-edit"></i> 编辑</button>' +
+                            '<button class="action-btn action-delete" data-id="' + model.id + '"><i class="layui-icon layui-icon-delete"></i> 删除</button>' +
+                        '</div>' +
+                    '</div>';
+                });
+                
+                grid.innerHTML = html;
+            }
+            
+            function renderPagination(total) {
+                var pages = Math.ceil(total / pageSize);
+                if (pages <= 1) {
+                    document.getElementById('pagination').innerHTML = '';
+                    return;
+                }
+                
+                laypage.render({
+                    elem: 'pagination',
+                    count: total,
+                    limit: pageSize,
+                    curr: currentPage,
+                    layout: ['prev', 'page', 'next'],
+                    jump: function(obj, first) {
+                        if (!first) {
+                            currentPage = obj.curr;
+                            renderModels(allModels);
+                        }
+                    }
+                });
+            }
+            
+            function escapeHtml(str) {
+                if (!str) return '';
+                var div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+            
+            document.getElementById('btnAdd').addEventListener('click', function() {
+                document.getElementById('modalTitle').textContent = '新增模型';
+                document.getElementById('modelId').value = '';
+                document.getElementById('modelForm').reset();
+                document.getElementById('modelModal').classList.add('show');
+            });
+            
+            document.getElementById('closeModal').addEventListener('click', function() {
+                document.getElementById('modelModal').classList.remove('show');
+            });
+            
+            document.getElementById('btnCancel').addEventListener('click', function() {
+                document.getElementById('modelModal').classList.remove('show');
+            });
+            
+            document.getElementById('btnSubmit').addEventListener('click', function() {
+                var id = document.getElementById('modelId').value;
+                var name = document.getElementById('modelName').value.trim();
+                var model_name = document.getElementById('modelIdentifier').value.trim();
+                var base_url = document.getElementById('baseUrl').value.trim();
+                var api_key = document.getElementById('apiKey').value;
+                var is_default = document.getElementById('isDefault').checked;
+                
+                if (!name || !model_name || !base_url || !api_key) {
+                    layer.msg('请填写完整信息', {icon: 2});
+                    return;
+                }
+                
+                var data = {name: name, model_name: model_name, base_url: base_url, api_key: api_key, is_default: is_default};
+                var url = id ? '/api/models/' + id : '/api/models';
+                var method = id ? 'PUT' : 'POST';
+                
+                var xhr = new XMLHttpRequest();
+                xhr.open(method, url, true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            layer.msg(id ? '更新成功' : '创建成功', {icon: 1});
+                            document.getElementById('modelModal').classList.remove('show');
+                            loadModels(1);
+                        } else {
+                            layer.msg(result.message || '操作失败', {icon: 2});
+                        }
+                    }
+                };
+                xhr.send(JSON.stringify(data));
+            });
+            
+            document.getElementById('modelsGrid').addEventListener('click', function(e) {
+                var btn = e.target.closest('.action-btn');
+                if (!btn) return;
+                
+                var modelId = parseInt(btn.getAttribute('data-id'));
+                var model = allModels.find(function(m) { return m.id === modelId; });
+                if (!model) return;
+                
+                if (btn.classList.contains('action-test')) {
+                    openChatModal(model);
+                } else if (btn.classList.contains('action-edit')) {
+                    editModel(model);
+                } else if (btn.classList.contains('action-delete')) {
+                    deleteModel(modelId);
+                } else if (btn.classList.contains('action-default')) {
+                    setDefaultModel(modelId);
+                }
+            });
+            
+            function editModel(model) {
+                document.getElementById('modalTitle').textContent = '编辑模型';
+                document.getElementById('modelId').value = model.id;
+                document.getElementById('modelName').value = model.name;
+                document.getElementById('modelIdentifier').value = model.model_name;
+                document.getElementById('baseUrl').value = model.base_url;
+                document.getElementById('apiKey').value = model.api_key;
+                document.getElementById('isDefault').checked = model.is_default;
+                document.getElementById('modelModal').classList.add('show');
+            }
+            
+            function deleteModel(modelId) {
+                layer.confirm('确定要删除该模型吗？', function(index) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('DELETE', '/api/models/' + modelId, true);
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            var result = JSON.parse(xhr.responseText);
+                            if (result.success) {
+                                layer.msg('删除成功', {icon: 1});
+                                loadModels(currentPage);
+                            } else {
+                                layer.msg(result.message || '删除失败', {icon: 2});
+                            }
+                        }
+                    };
+                    xhr.send();
+                    layer.close(index);
+                });
+            }
+            
+            function setDefaultModel(modelId) {
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/api/models/set-default', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            layer.msg('设置成功', {icon: 1});
+                            loadModels(currentPage);
+                        } else {
+                            layer.msg(result.message || '设置失败', {icon: 2});
+                        }
+                    }
+                };
+                xhr.send(JSON.stringify({model_id: modelId}));
+            }
+            
+            function openChatModal(model) {
+                currentChatModelId = model.id;
+                document.getElementById('chatModelName').textContent = model.name;
+                document.getElementById('chatContainer').innerHTML = '';
+                document.getElementById('chatInput').value = '';
+                document.getElementById('chatModal').classList.add('show');
+            }
+            
+            document.getElementById('closeChatModal').addEventListener('click', function() {
+                document.getElementById('chatModal').classList.remove('show');
+                if (eventSource) {
+                    eventSource.close();
+                    eventSource = null;
+                }
+            });
+            
+            function addChatMessage(role, content, isError) {
+                var container = document.getElementById('chatContainer');
+                var html = '<div class="chat-message ' + role + '">' +
+                    '<div class="chat-avatar"><i class="layui-icon ' + (role === 'assistant' ? 'layui-icon-cellphone' : 'layui-icon-user') + '"></i></div>' +
+                    '<div class="chat-bubble' + (isError ? ' error' : '') + '">' + escapeHtml(content) + '</div>' +
+                '</div>';
+                container.insertAdjacentHTML('beforeend', html);
+                container.scrollTop = container.scrollHeight;
+            }
+            
+            function showTyping() {
+                var container = document.getElementById('chatContainer');
+                var html = '<div class="chat-message assistant" id="typingMsg">' +
+                    '<div class="chat-avatar"><i class="layui-icon layui-icon-cellphone"></i></div>' +
+                    '<div class="chat-bubble"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>' +
+                '</div>';
+                container.insertAdjacentHTML('beforeend', html);
+                container.scrollTop = container.scrollHeight;
+            }
+            
+            function hideTyping() {
+                var typing = document.getElementById('typingMsg');
+                if (typing) typing.remove();
+            }
+            
+            function sendMessage() {
+                var input = document.getElementById('chatInput');
+                var message = input.value.trim();
+                if (!message) return;
+                
+                addChatMessage('user', message);
+                input.value = '';
+                showTyping();
+                
+                var sendBtn = document.getElementById('chatSend');
+                sendBtn.disabled = true;
+                
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/api/models/chat', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                
+                xhr.onload = function() {
+                    sendBtn.disabled = false;
+                    hideTyping();
+                    if (xhr.status === 200) {
+                        var result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            if (result.data && result.data.content) {
+                                addChatMessage('assistant', result.data.content);
+                            }
+                            if (result.data && result.data.tokens) {
+                                loadModels(currentPage);
+                            }
+                        } else {
+                            addChatMessage('assistant', result.message || '请求失败', true);
+                        }
+                    } else {
+                        addChatMessage('assistant', '请求失败: ' + xhr.status, true);
+                    }
+                };
+                
+                xhr.onerror = function() {
+                    sendBtn.disabled = false;
+                    hideTyping();
+                    addChatMessage('assistant', '网络错误', true);
+                };
+                
+                xhr.send(JSON.stringify({
+                    model_id: currentChatModelId,
+                    message: message
+                }));
+            }
+            
+            document.getElementById('chatSend').addEventListener('click', sendMessage);
+            document.getElementById('chatInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            loadModels(1);
+        });
+    </script>
+</body>
+</html>

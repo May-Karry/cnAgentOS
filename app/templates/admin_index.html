@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI智能瞭望与智能问数系统 - 管理后台</title>
+    <link rel="stylesheet" href="/static/dist/layui-v2.13.6/layui-v2.13.6/layui/css/layui.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #f0f2f5;
+            overflow: hidden;
+        }
+        .admin-layout {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 200px;
+            background: #001529;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.2s;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 100;
+        }
+        .sidebar.collapsed {
+            width: 64px;
+        }
+        .sidebar-logo {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .sidebar.collapsed .sidebar-logo {
+            padding: 0;
+            justify-content: center;
+        }
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: #1890ff;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .logo-icon i {
+            font-size: 18px;
+            color: #fff;
+        }
+        .logo-text {
+            margin-left: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            white-space: nowrap;
+        }
+        .sidebar.collapsed .logo-text {
+            display: none;
+        }
+        .menu-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 0;
+        }
+        .menu-wrapper::-webkit-scrollbar {
+            width: 6px;
+        }
+        .menu-wrapper::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 24px;
+            color: rgba(255, 255, 255, 0.65);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .menu-item:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .menu-item.active {
+            color: #fff;
+            background: #1890ff;
+        }
+        .menu-item i {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .menu-item span {
+            margin-left: 12px;
+            white-space: nowrap;
+        }
+        .sidebar.collapsed .menu-item span {
+            display: none;
+        }
+        .sidebar.collapsed .menu-item {
+            padding: 12px 0;
+            justify-content: center;
+        }
+        .sidebar-footer {
+            padding: 16px 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .sidebar.collapsed .sidebar-footer {
+            padding: 16px 0;
+            text-align: center;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: #1890ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .user-avatar i {
+            font-size: 16px;
+            color: #fff;
+        }
+        .user-detail {
+            margin-left: 12px;
+        }
+        .user-name {
+            font-size: 14px;
+            color: #fff;
+            font-weight: 500;
+        }
+        .user-role {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.45);
+        }
+        .sidebar.collapsed .user-detail {
+            display: none;
+        }
+        
+        /* 子菜单样式 */
+        .submenu {
+            display: none;
+            background: rgba(0, 0, 0, 0.2);
+            padding-left: 16px;
+        }
+        .submenu.open {
+            display: block;
+        }
+        .submenu .menu-item {
+            padding-left: 40px;
+            font-size: 13px;
+        }
+        .menu-item .arrow {
+            margin-left: auto;
+            transition: transform 0.2s;
+        }
+        .menu-item.open .arrow {
+            transform: rotate(90deg);
+        }
+        
+        .main-area {
+            flex: 1;
+            margin-left: 200px;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.2s;
+        }
+        .sidebar.collapsed + .main-area {
+            margin-left: 64px;
+        }
+        .topbar {
+            height: 64px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .topbar-left {
+            display: flex;
+            align-items: center;
+        }
+        .collapse-btn {
+            width: 32px;
+            height: 32px;
+            background: #fff;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #595959;
+            transition: all 0.2s;
+            margin-right: 24px;
+        }
+        .collapse-btn:hover {
+            color: #1890ff;
+            border-color: #1890ff;
+        }
+        .topbar-title {
+            font-size: 16px;
+            color: #262626;
+            font-weight: 500;
+        }
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            margin-left: auto;
+            gap: 16px;
+        }
+        .topbar-icon {
+            font-size: 18px;
+            color: #8c8c8c;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .topbar-icon:hover {
+            color: #1890ff;
+        }
+        .logout-btn {
+            height: 32px;
+            padding: 0 16px;
+            background: #fff;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #595959;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .logout-btn:hover {
+            color: #ff4d4f;
+            border-color: #ff4d4f;
+        }
+        .content-area {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background: #f0f2f5;
+        }
+        .content-frame {
+            width: 100%;
+            height: 100%;
+            min-height: calc(100vh - 64px - 48px);
+            background: #fff;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .main-area {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">
+                    <i class="layui-icon layui-icon-console"></i>
+                </div>
+                <span class="logo-text">智能瞭望系统</span>
+            </div>
+            
+            <div class="menu-wrapper" id="menuWrapper">
+                {% if menus and len(menus) > 0 %}
+                    {% for i in range(len(menus)) %}
+                        {% set menu = menus[i] %}
+                        {% set has_children = menu.get('children') and len(menu['children']) > 0 %}
+                        <div class="menu-item {% if i == 0 %}active{% end %}" data-url="{{ menu['url'] }}" data-has-children="{{ 'true' if has_children else 'false' }}">
+                            <i class="layui-icon {{ menu['icon'] }}"></i>
+                            <span>{{ menu['name'] }}</span>
+                            {% if has_children %}
+                            <i class="layui-icon layui-icon-right arrow"></i>
+                            {% end %}
+                        </div>
+                        {% if has_children %}
+                        <div class="submenu">
+                            {% for child in menu['children'] %}
+                            <div class="menu-item" data-url="{{ child['url'] }}">
+                                <i class="layui-icon {{ child['icon'] }}"></i>
+                                <span>{{ child['name'] }}</span>
+                            </div>
+                            {% end %}
+                        </div>
+                        {% end %}
+                    {% end %}
+                {% else %}
+                    <div class="menu-item active" data-url="/admin/users">
+                        <i class="layui-icon layui-icon-user"></i>
+                        <span>用户管理</span>
+                    </div>
+                {% end %}
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="layui-icon layui-icon-user"></i>
+                    </div>
+                    <div class="user-detail">
+                        <div class="user-name">{{ username }}</div>
+                        <div class="user-role">{{ role_name }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-area">
+            <div class="topbar">
+                <div class="topbar-left">
+                    <button class="collapse-btn" id="toggleBtn">
+                        <i class="layui-icon layui-icon-shrink-right"></i>
+                    </button>
+                    {% if menus and len(menus) > 0 %}
+                        <span class="topbar-title" id="pageTitle">{{ menus[0]['name'] }}</span>
+                    {% else %}
+                        <span class="topbar-title" id="pageTitle">用户管理</span>
+                    {% end %}
+                </div>
+                <div class="topbar-right">
+                    <i class="layui-icon layui-icon-notify topbar-icon"></i>
+                    <i class="layui-icon layui-icon-settop topbar-icon"></i>
+                    <form action="/admin/logout" method="post" id="logoutForm" style="display:inline;">
+                        <input type="hidden" name="_xsrf" value="{{ xsrf_token }}">
+                        <button type="submit" class="logout-btn">退出登录</button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="content-area">
+                {% if menus and len(menus) > 0 %}
+                    <iframe class="content-frame" id="mainFrame" src="{{ menus[0]['url'] }}"></iframe>
+                {% else %}
+                    <iframe class="content-frame" id="mainFrame" src="/admin/users"></iframe>
+                {% end %}
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/dist/layui-v2.13.6/layui-v2.13.6/layui/layui.js"></script>
+    <script>
+        layui.use(['layer'], function() {
+            var layer = layui.layer;
+            
+            var sidebar = document.getElementById('sidebar');
+            var toggleBtn = document.getElementById('toggleBtn');
+            var menuWrapper = document.getElementById('menuWrapper');
+            var mainFrame = document.getElementById('mainFrame');
+            var pageTitle = document.getElementById('pageTitle');
+            
+            toggleBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                var icon = toggleBtn.querySelector('i');
+                if (sidebar.classList.contains('collapsed')) {
+                    icon.className = 'layui-icon layui-icon-spread-left';
+                } else {
+                    icon.className = 'layui-icon layui-icon-shrink-right';
+                }
+            });
+            
+            menuWrapper.addEventListener('click', function(e) {
+                var menuItem = e.target.closest('.menu-item');
+                if (!menuItem) return;
+                
+                var hasChildren = menuItem.getAttribute('data-has-children') === 'true';
+                
+                // 首先处理高亮状态
+                document.querySelectorAll('.menu-item').forEach(function(item) {
+                    item.classList.remove('active');
+                });
+                menuItem.classList.add('active');
+                
+                // 跳转页面
+                var url = menuItem.getAttribute('data-url');
+                var title = menuItem.querySelector('span').textContent;
+                mainFrame.src = url;
+                pageTitle.textContent = title;
+                
+                // 如果有子菜单，同时切换展开/折叠状态
+                if (hasChildren) {
+                    var submenu = menuItem.nextElementSibling;
+                    if (submenu && submenu.classList.contains('submenu')) {
+                        menuItem.classList.toggle('open');
+                        submenu.classList.toggle('open');
+                    }
+                }
+            });
+            
+            document.getElementById('logoutForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                layer.confirm('确定要退出登录吗？', function(index) {
+                    document.getElementById('logoutForm').submit();
+                    layer.close(index);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

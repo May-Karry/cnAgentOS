@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>存储配置管理</title>
+    <link rel="stylesheet" href="/static/dist/layui-v2.13.6/layui-v2.13.6/layui/css/layui.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #e2e8f0;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 24px;
+        }
+        .title { 
+            font-size: 28px; 
+            font-weight: 700; 
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { 
+            background: rgba(15, 23, 42, 0.8); 
+            border: 1px solid rgba(148, 163, 184, 0.2); 
+            border-radius: 16px; 
+            padding: 24px;
+        }
+        .card-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #e2e8f0; }
+        .storage-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        .storage-card { 
+            background: rgba(30, 27, 75, 0.6); 
+            padding: 20px; 
+            border-radius: 12px; 
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            position: relative;
+        }
+        .storage-card.active { border-color: #3b82f6; }
+        .storage-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .storage-name { font-weight: 600; font-size: 16px; }
+        .storage-type { 
+            padding: 4px 10px; 
+            background: rgba(59, 130, 246, 0.2); 
+            color: #60a5fa; 
+            border-radius: 20px; 
+            font-size: 12px; 
+        }
+        .storage-info { font-size: 13px; color: #94a3b8; margin-bottom: 12px; }
+        .storage-actions { display: flex; gap: 8px; }
+        .btn { 
+            padding: 8px 16px; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 13px; 
+            cursor: pointer; 
+            transition: all 0.2s;
+        }
+        .btn-primary { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; }
+        .btn-secondary { background: rgba(71, 85, 105, 0.6); color: #e2e8f0; }
+        .btn-success { background: #16a34a; color: white; }
+        .btn-danger { background: #dc2626; color: white; }
+        .form-group { margin-bottom: 16px; }
+        .form-label { 
+            display: block; 
+            font-size: 14px; 
+            color: #94a3b8; 
+            margin-bottom: 8px;
+        }
+        .form-input, .form-select, .form-textarea { 
+            width: 100%; 
+            padding: 10px 14px; 
+            background: rgba(30, 27, 75, 0.6); 
+            border: 1px solid rgba(148, 163, 184, 0.2); 
+            border-radius: 8px; 
+            color: #e2e8f0;
+            font-size: 14px;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus { 
+            outline: none; 
+            border-color: #3b82f6;
+        }
+        .status-dot { 
+            width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px;
+        }
+        .status-dot.online { background: #22c55e; }
+        .status-dot.offline { background: #ef4444; }
+        .full-width { grid-column: 1/-1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">💾 存储配置管理</h1>
+            <button class="btn btn-primary" onclick="showAddStorage()">+ 新建存储配置</button>
+        </div>
+        
+        <div class="grid">
+            <!-- 存储配置卡片 -->
+            <div class="card full-width">
+                <div class="card-title">已配置存储</div>
+                <div class="storage-cards" id="storageCards"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 存储配置弹窗 -->
+    <div class="modal-overlay" id="storageModal">
+        <div class="modal" style="width:650px;">
+            <div class="modal-header">
+                <span class="modal-title" id="storageModalTitle">新建存储配置</span>
+                <span class="modal-close" onclick="closeStorageModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">配置名称</label>
+                    <input type="text" class="form-input" id="storageName" placeholder="主数据库">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">存储类型</label>
+                    <select class="form-select" id="storageType">
+                        <option value="sqlite">SQLite</option>
+                        <option value="mysql">MySQL</option>
+                        <option value="postgresql">PostgreSQL</option>
+                        <option value="mongodb">MongoDB</option>
+                        <option value="redis">Redis</option>
+                        <option value="chroma">Chroma</option>
+                        <option value="milvus">Milvus</option>
+                        <option value="qdrant">Qdrant</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">连接字符串</label>
+                    <input type="text" class="form-input" id="connectionString" placeholder="mysql://user:pass@localhost/db">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">额外配置 (JSON)</label>
+                    <textarea class="form-textarea" id="storageConfig" rows="3" placeholder='{"poolSize": 10}'></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeStorageModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveStorage()">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/dist/layui-v2.13.6/layui-v2.13.6/layui/layui.js"></script>
+    <script>
+        layui.use(['layer'], function() {
+            let layer = layui.layer;
+            
+            let allConfigs = [];
+            let selectedConfigId = null;
+            
+            loadConfigs();
+            
+            function loadConfigs() {
+                let xhr = new XMLHttpRequest();
+                xhr.open('GET', '/api/storage-configs');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        let result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            allConfigs = result.data || [];
+                            renderStorageCards();
+                        }
+                    }
+                };
+                xhr.send();
+            }
+            
+            function renderStorageCards() {
+                let container = document.getElementById('storageCards');
+                if (allConfigs.length === 0) {
+                    container.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#94a3b8;padding:40px;">' +
+                        '暂无存储配置，请点击右上角新建</div>';
+                    return;
+                }
+                
+                container.innerHTML = allConfigs.map(function(c) {
+                    let isActive = c.is_active;
+                    let lastTest = c.last_test_at || '未测试';
+                    return '<div class="storage-card ' + (isActive ? 'active' : '') + '">' +
+                        '<div class="storage-header">' +
+                            '<div class="storage-name">' + escapeHtml(c.name) + '</div>' +
+                            '<div class="storage-type">' + c.storage_type.toUpperCase() + '</div>' +
+                        '</div>' +
+                        '<div class="storage-info">' +
+                            '<div><span class="status-dot ' + (lastTest !== '未测试' ? 'online' : 'offline') + '"></span>' +
+                            '最后测试: ' + lastTest + '</div>' +
+                            (c.connection_string ? '<div style="margin-top:4px;">' + escapeHtml(c.connection_string) + '</div>' : '') +
+                        '</div>' +
+                        '<div class="storage-actions">' +
+                            '<button class="btn btn-success" onclick="testConnection(' + c.id + ')">测试连接</button>' +
+                            '<button class="btn btn-secondary" onclick="toggleActive(' + c.id + ')">' + (isActive ? '禁用' : '启用') + '</button>' +
+                            '<button class="btn btn-secondary" onclick="editStorage(' + c.id + ')">编辑</button>' +
+                            '<button class="btn btn-danger" onclick="deleteStorage(' + c.id + ')">删除</button>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+            }
+            
+            window.showAddStorage = function() {
+                selectedConfigId = null;
+                document.getElementById('storageModalTitle').textContent = '新建存储配置';
+                document.getElementById('storageName').value = '';
+                document.getElementById('storageType').value = 'sqlite';
+                document.getElementById('connectionString').value = '';
+                document.getElementById('storageConfig').value = '';
+                document.getElementById('storageModal').classList.add('show');
+            };
+            
+            window.editStorage = function(id) {
+                let config = allConfigs.find(function(c) { return c.id === id; });
+                if (config) {
+                    selectedConfigId = id;
+                    document.getElementById('storageModalTitle').textContent = '编辑存储配置';
+                    document.getElementById('storageName').value = config.name || '';
+                    document.getElementById('storageType').value = config.storage_type || 'sqlite';
+                    document.getElementById('connectionString').value = config.connection_string || '';
+                    document.getElementById('storageConfig').value = config.config || '';
+                    document.getElementById('storageModal').classList.add('show');
+                }
+            };
+            
+            window.closeStorageModal = function() {
+                document.getElementById('storageModal').classList.remove('show');
+            };
+            
+            window.saveStorage = function() {
+                let data = {
+                    name: document.getElementById('storageName').value,
+                    storage_type: document.getElementById('storageType').value,
+                    connection_string: document.getElementById('connectionString').value,
+                    config: safeParseJSON(document.getElementById('storageConfig').value)
+                };
+                
+                if (!data.name) {
+                    layer.msg('请输入配置名称', {icon:2});
+                    return;
+                }
+                
+                let url = selectedConfigId ? '/api/storage-configs/' + selectedConfigId : '/api/storage-configs';
+                let method = selectedConfigId ? 'PUT' : 'POST';
+                
+                let xhr = new XMLHttpRequest();
+                xhr.open(method, url);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        let result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            layer.msg('保存成功', {icon:1});
+                            closeStorageModal();
+                            loadConfigs();
+                        } else {
+                            layer.msg(result.message, {icon:2});
+                        }
+                    }
+                };
+                xhr.send(JSON.stringify(data));
+            };
+            
+            window.deleteStorage = function(id) {
+                layer.confirm('确定删除此配置？', function(idx) {
+                    let xhr = new XMLHttpRequest();
+                    xhr.open('DELETE', '/api/storage-configs/' + id);
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            let result = JSON.parse(xhr.responseText);
+                            if (result.success) {
+                                layer.msg('删除成功', {icon:1});
+                                loadConfigs();
+                            }
+                        }
+                    };
+                    xhr.send();
+                    layer.close(idx);
+                });
+            };
+            
+            window.toggleActive = function(id) {
+                let config = allConfigs.find(function(c) { return c.id === id; });
+                if (config) {
+                    let xhr = new XMLHttpRequest();
+                    xhr.open('PUT', '/api/storage-configs/' + id);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            layer.msg(config.is_active ? '已禁用' : '已启用', {icon:1});
+                            loadConfigs();
+                        }
+                    };
+                    xhr.send(JSON.stringify({ is_active: !config.is_active }));
+                }
+            };
+            
+            window.testConnection = function(id) {
+                let xhr = new XMLHttpRequest();
+                xhr.open('POST', '/api/storage-test');
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        let result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            layer.msg(result.message, {icon:1});
+                            loadConfigs();
+                        } else {
+                            layer.msg(result.message, {icon:2});
+                        }
+                    }
+                };
+                xhr.send(JSON.stringify({ config_id: id }));
+            };
+            
+            function safeParseJSON(str) {
+                if (!str) return null;
+                try {
+                    return JSON.parse(str);
+                } catch(e) {
+                    return null;
+                }
+            }
+            
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+        });
+    </script>
+    <style>
+        .modal-overlay {
+            position: fixed; top:0; left:0; right:0; bottom:0;
+            background: rgba(0,0,0,0.6); display:none;
+            align-items:center; justify-content:center; z-index:1000;
+        }
+        .modal-overlay.show { display:flex; }
+        .modal { background:white; border-radius:12px; overflow:hidden; }
+        .modal-header {
+            padding:20px 24px; border-bottom:1px solid #eee;
+            display:flex; justify-content:space-between; align-items:center;
+            background: #0f172a;
+        }
+        .modal-title { color:white; font-size:18px; font-weight:600; }
+        .modal-close { font-size:24px; cursor:pointer; color:#94a3b8; }
+        .modal-body { padding:24px; }
+        .modal-footer { padding:20px 24px; border-top:1px solid #eee; display:flex; gap:12px; justify-content:flex-end; background:#f8fafc; }
+        .btn-secondary { background:#e2e8f0; color:#334155; }
+    </style>
+</body>
+</html>
